@@ -22,6 +22,7 @@ interface NavbarProps {
   onToggleNotifications: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  onSelectUser?: (userId: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleNotifications,
   searchQuery,
   setSearchQuery,
+  onSelectUser,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [userSearch, setUserSearch] = useState('');
@@ -248,6 +250,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       key={u.id}
                       onClick={() => {
                         store.setCurrentUser(u.id);
+                        if (onSelectUser) {
+                          onSelectUser(u.id);
+                        }
                         setShowUserDropdown(false);
                         setUserSearch('');
                       }}

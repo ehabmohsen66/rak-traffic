@@ -251,6 +251,9 @@ export default function DashboardClient() {
         onToggleNotifications={() => setShowNotifications(!showNotifications)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        onSelectUser={() => {
+          setActiveTab('myTasks');
+        }}
       />
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
