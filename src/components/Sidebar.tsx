@@ -186,19 +186,66 @@ export const Sidebar: React.FC<SidebarProps> = ({ state, activeTab, setActiveTab
         })}
       </nav>
 
-      {/* Lebanese Cedar Footnote */}
+      {/* Animated Lebanon Flag Themed Creative Hub & Pulse Widget */}
       <div className="mt-auto pt-3 border-t border-slate-100">
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">🇱🇧</span>
-            <div className="flex flex-col">
-              <span className="text-[11px] font-bold text-slate-800 leading-tight">Beirut HQ • Antelias</span>
-              <span className="text-[10px] text-slate-500 font-medium leading-tight" suppressHydrationWarning>{beirutTime || 'Beirut Time'}</span>
+        <div className="relative overflow-hidden rounded-2xl border border-red-200/80 shadow-xs group transition-all duration-300 hover:shadow-card hover:border-red-300">
+          {/* Top Red Stripe */}
+          <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-red-500 to-red-600" />
+
+          {/* White Center Stripe with Cedar & Details */}
+          <div className="relative bg-white/95 p-3.5 space-y-2.5">
+            {/* Subtle Background Giant Cedar Watermark */}
+            <div className="absolute -right-3 -bottom-3 text-emerald-600/10 pointer-events-none transform rotate-12 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-6">
+              <svg viewBox="0 0 36 36" fill="currentColor" className="w-28 h-28">
+                <path d="M18 2L15.5 6.5H17L13.5 11.5H16L10.5 17.5H14L6.5 25H16.5V31H19.5V25H29.5L22 17.5H25.5L20 11.5H22.5L19 6.5H20.5L18 2Z" />
+              </svg>
+            </div>
+
+            {/* Top Row: Animated Cedar Icon + Beirut Location */}
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 border border-emerald-200 flex items-center justify-center shadow-xs group-hover:border-emerald-400 transition-colors">
+                  <AnimatedLebaneseCedar className="w-5 h-5 text-emerald-700" />
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-extrabold text-slate-900 tracking-wide uppercase">
+                      Beirut HQ
+                    </span>
+                    <span className="text-xs">🇱🇧</span>
+                  </div>
+                  <div className="text-[9px] font-semibold text-red-600 flex items-center gap-1">
+                    <span>Antelias</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-slate-600" suppressHydrationWarning>{beirutTime || 'Beirut Time'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pulsing Active Beacon */}
+              <div className="flex items-center gap-1.5 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200 shadow-2xs">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-tight">Active</span>
+              </div>
+            </div>
+
+            {/* Bottom Row: Animated Caption & Active Task Pill */}
+            <div className="pt-2 border-t border-slate-100 relative z-10 flex items-center justify-between text-[10px]">
+              <span className="font-semibold text-slate-700 flex items-center gap-1">
+                <Zap className="w-3 h-3 text-red-500 fill-red-500" />
+                <span className="font-bold text-slate-800">
+                  Lebanese Creative Soul
+                </span>
+              </span>
+              <span className="text-[9px] font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded-md border border-red-200">
+                {totalTasks} Ops
+              </span>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-            Active
-          </span>
+
+          {/* Bottom Red Stripe */}
+          <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-red-500 to-red-600" />
         </div>
       </div>
     </aside>
