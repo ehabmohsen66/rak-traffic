@@ -9,7 +9,8 @@ import {
   Globe, 
   AlertTriangle, 
   ChevronDown,
-  UserCheck
+  UserCheck,
+  Sun
 } from 'lucide-react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
@@ -282,6 +283,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Beirut Weather Pill */}
+        <div className="hidden sm:flex items-center gap-1.5 bg-amber-50/80 border border-amber-200/80 hover:bg-amber-100/70 text-amber-900 px-2.5 py-1.5 rounded-xl text-xs font-semibold shadow-2xs transition-colors select-none" title="Beirut Live Weather • Sunny Mediterranean Coast">
+          <Sun className="w-4 h-4 text-amber-500 fill-amber-400 animate-spin-slow shrink-0" />
+          <div className="flex items-center gap-1">
+            <span className="font-extrabold text-amber-950">29°C</span>
+            <span className="text-[10px] text-amber-700 font-medium hidden md:inline">{state.language === 'ar' ? 'بيروت مشمس' : 'Beirut Clear'}</span>
+          </div>
         </div>
 
         {/* Share Current View URL Button */}
