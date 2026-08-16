@@ -128,7 +128,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 h-full min-h-[600px] overflow-x-auto pb-6">
+    <div className="flex gap-4 w-full overflow-x-auto pb-6 pt-1 items-start">
       {columns.map((col) => {
         const columnTasks = tasks.filter((t) => t.status === col.id);
         const isDelayedCol = col.id === 'Delayed';
@@ -136,7 +136,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         return (
           <div
             key={col.id}
-            className={`flex flex-col rounded-2xl border ${col.border} ${col.bg} p-3.5 space-y-3 min-w-[260px] shadow-xs`}
+            className={`flex flex-col shrink-0 w-72 lg:w-80 rounded-2xl border ${col.border} ${col.bg} p-3.5 space-y-3 shadow-xs`}
           >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
@@ -144,7 +144,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 <span className={`text-xs font-bold uppercase tracking-wider ${col.color}`}>
                   {col.label}
                 </span>
-                {isDelayedCol && <AlertTriangle className="w-4 h-4 text-rose-600 animate-bounce" />}
+                {isDelayedCol && <AlertTriangle className="w-4 h-4 text-rose-600" />}
               </div>
               <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full shadow-xs ${col.badgeBg}`}>
                 {columnTasks.length}
@@ -152,9 +152,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             </div>
 
             {/* Task Cards Container */}
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+            <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
               {columnTasks.length === 0 ? (
-                <div className="h-32 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs text-slate-400 font-medium bg-white/40">
+                <div className="h-28 border border-dashed border-slate-300/80 rounded-xl flex items-center justify-center text-xs text-slate-400 font-medium bg-white/50">
                   No tasks
                 </div>
               ) : (
@@ -168,13 +168,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     <div
                       key={task.id}
                       onClick={() => onSelectTask(task)}
-                      className={`bg-white rounded-xl p-3.5 space-y-2.5 cursor-pointer transition-all duration-200 relative group border shadow-xs hover:shadow-card hover:border-indigo-300 ${
+                      className={`bg-white rounded-xl p-3.5 space-y-2.5 cursor-pointer transition-all duration-150 relative group border shadow-xs hover:shadow-md hover:border-indigo-400 ${
                         task.status === 'Delayed' ? 'border-rose-300 hover:border-rose-400 ring-1 ring-rose-100' : 'border-slate-200'
                       }`}
                     >
                       {/* Top Bar: Client & Priority */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md truncate max-w-[140px]">
+                        <span className="text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md truncate max-w-[150px]">
                           {clientName}
                         </span>
                         {getPriorityBadge(task.priority)}
