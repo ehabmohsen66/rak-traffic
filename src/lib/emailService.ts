@@ -34,6 +34,47 @@ export async function sendEmail(
   payload: SendEmailPayload,
   config: EmailConfig = DEFAULT_EMAIL_CONFIG
 ): Promise<{ success: boolean; log: EmailLog; error?: string }> {
+  // If running in browser client, forward dispatch through secure Next.js API route
+  if (typeof window !== 'undefined') {
+    try {
+      const response = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload, config })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to send email`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (err: any) {
+      console.error('Client email dispatch error:', err);
+      const fallbackLog: EmailLog = {
+        id: `eml-${Date.now()}`,
+        taskId: payload.taskId,
+        taskTitle: payload.taskTitle,
+        recipientId: payload.to.id || 'usr-recipient',
+        recipientName: payload.to.name,
+        recipientEmail: payload.to.email,
+        senderName: payload.from?.name || config.fromName || 'RAK 4 CREATIVE Traffic',
+        senderEmail: payload.from?.email || config.fromEmail || 'onboarding@resend.dev',
+        subject: payload.subject,
+        type: payload.type,
+        htmlBody: payload.html,
+        textBody: payload.text,
+        sentAt: new Date().toISOString(),
+        status: 'failed',
+        provider: config.provider,
+        errorMessage: err?.message || 'Failed to dispatch via API'
+      };
+      return { success: false, log: fallbackLog, error: err?.message };
+    }
+  }
+
+  // Server-side execution
   const senderName = payload.from?.name || config.fromName || 'RAK 4 CREATIVE Traffic';
   let senderEmail = payload.from?.email || config.fromEmail || 'onboarding@resend.dev';
 
@@ -55,10 +96,7 @@ export async function sendEmail(
       case 'vercel':
       case 'resend': {
         if (!effectiveApiKey) {
-          // If no API key provided yet, fall back gracefully to simulation mode with clear instruction
-          console.warn('[Vercel Email Dispatcher] RESEND_API_KEY not set yet. Running in Vercel preview/simulated mode. Add RESEND_API_KEY in Vercel dashboard or Settings for live delivery.');
-          deliveryStatus = 'simulated';
-          break;
+          throw new Error('Resend API key is missing. Please add RESEND_API_KEY in your Vercel Project Settings (Settings -> Environment Variables -> RESEND_API_KEY) or enter it in the Settings tab.');
         }
 
         // If using test onboarding address, format appropriately
@@ -84,7 +122,7 @@ export async function sendEmail(
         if (!res.ok) {
           const rawMsg = data.message || `Resend error: ${res.statusText}`;
           if (rawMsg.includes('only send testing emails') || rawMsg.includes('testing emails')) {
-            throw new Error(`${rawMsg} (Tip: When using onboarding@resend.dev, Resend requires sending to the email you registered on Resend, or verify a custom domain in Resend to send to everyone).`);
+            throw new Error(`${rawMsg} (Tip: When using onboarding@resend.dev, send test emails to your registered Resend account email: ehabmohsen66@gmail.com, or verify a custom domain to send to any team email).`);
           }
           throw new Error(rawMsg);
         }
