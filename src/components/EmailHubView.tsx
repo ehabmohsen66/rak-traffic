@@ -703,19 +703,27 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
                       </td>
 
                       <td className="p-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase ${
-                            log.status === 'delivered'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : log.status === 'failed'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-sky-50 text-sky-700 border border-sky-200'
-                          }`}
-                        >
-                          {log.status === 'delivered' && <Check className="w-3 h-3 text-emerald-600" />}
-                          {log.status === 'failed' && <AlertTriangle className="w-3 h-3 text-rose-600" />}
-                          <span>{log.status} ({log.provider})</span>
-                        </span>
+                        <div>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase ${
+                              log.status === 'delivered'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : log.status === 'failed'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-sky-50 text-sky-700 border border-sky-200'
+                            }`}
+                          >
+                            {log.status === 'delivered' && <Check className="w-3 h-3 text-emerald-600" />}
+                            {log.status === 'failed' && <AlertTriangle className="w-3 h-3 text-rose-600" />}
+                            <span>{log.status} ({log.provider})</span>
+                          </span>
+
+                          {log.errorMessage && (
+                            <div className="text-[10px] text-rose-600 mt-1 max-w-xs font-normal leading-tight bg-rose-50/50 p-1.5 rounded-lg border border-rose-100">
+                              ⚠️ {log.errorMessage}
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       <td className="p-3 text-right">
@@ -916,8 +924,13 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
               </div>
 
               <p className="text-xs text-slate-500">
-                Verify your email configuration and delivery with an instant test message.
+                Verify live email delivery to your inbox via Resend.
               </p>
+
+              {/* Free Onboarding Domain Notice */}
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-[11px] text-indigo-900 leading-relaxed">
+                <span className="font-bold">💡 Resend Test Mode:</span> When using <code className="bg-indigo-100 px-1 py-0.5 rounded font-mono text-[10px]">onboarding@resend.dev</code>, Resend only allows sending to the email address registered on your Resend account (e.g. <span className="font-bold text-indigo-950">ehabmohsen66@gmail.com</span>). To send to <span className="font-semibold">@rak4creative.com</span>, add your domain in Resend.
+              </div>
 
               <div className="space-y-2 text-xs">
                 <label className="block font-semibold text-slate-700">Test Recipient Address</label>
@@ -925,17 +938,24 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
                   type="email"
                   value={testEmailRecipient}
                   onChange={(e) => setTestEmailRecipient(e.target.value)}
-                  placeholder="ehab.m@rak4creative.com"
-                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"
+                  placeholder="ehabmohsen66@gmail.com"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
                 />
 
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!testEmailRecipient) return;
+                    if (!testEmailRecipient) {
+                      alert('Please enter a recipient email address');
+                      return;
+                    }
                     try {
-                      await store.sendTestEmail(testEmailRecipient);
-                      alert(`Test email dispatched successfully to ${testEmailRecipient}! Check your inbox or outbox logs.`);
+                      const res = await store.sendTestEmail(testEmailRecipient);
+                      if (res.success && res.log?.status === 'delivered') {
+                        alert(`✅ Test email delivered successfully to ${testEmailRecipient}! Check your inbox.`);
+                      } else {
+                        alert(`⚠️ Delivery Failed:\n${res.error || res.log?.errorMessage || 'Check outbox logs for error details'}`);
+                      }
                     } catch (err: any) {
                       alert(`Test failed: ${err.message}`);
                     }
@@ -991,6 +1011,16 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {selectedLogForModal.status === 'failed' && (
+              <div className="bg-rose-50 border-b border-rose-100 p-3.5 px-4 text-xs text-rose-800 font-medium flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Delivery Error from Resend:</span>
+                  <div className="mt-0.5 text-rose-700 font-normal">{selectedLogForModal.errorMessage}</div>
+                </div>
+              </div>
+            )}
 
             <div className="flex-1 overflow-hidden p-4 bg-slate-100">
               <iframe
