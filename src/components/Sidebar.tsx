@@ -11,7 +11,8 @@ import {
   Settings,
   ListTodo,
   Sparkles,
-  Zap
+  Zap,
+  Mail
 } from 'lucide-react';
 import { AppState } from '@/lib/store';
 import { translations } from '@/lib/i18n';
@@ -23,7 +24,8 @@ export type MainTab =
   | 'clientWip' 
   | 'recurrence' 
   | 'employeeHistory' 
-  | 'excelMigration' 
+  | 'excelMigration'
+  | 'emails'
   | 'settings';
 
 interface SidebarProps {
@@ -145,6 +147,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ state, activeTab, setActiveTab
       icon: FileSpreadsheet,
       badge: 'CSV',
       badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    },
+    {
+      id: 'emails' as MainTab,
+      label: t.navEmails,
+      icon: Mail,
+      badge: state.emailLogs.length,
+      badgeColor: 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold',
     },
     {
       id: 'settings' as MainTab,

@@ -1,4 +1,4 @@
-import { User, Client, Task, RecurrenceRule, AuditLog, Notification } from './types';
+import { User, Client, Task, RecurrenceRule, AuditLog, Notification, EmailLog, EmailConfig } from './types';
 
 export const INITIAL_USERS: User[] = [
   {
@@ -836,3 +836,51 @@ export const INITIAL_NOTIFICATIONS: Notification[] = [
     createdAt: '2026-08-14T16:00:00Z'
   }
 ];
+
+export const INITIAL_EMAIL_CONFIG: EmailConfig = {
+  provider: 'vercel',
+  fromName: 'RAK 4 CREATIVE Traffic Operations',
+  fromEmail: 'onboarding@resend.dev',
+  replyTo: 'farah.y@rak4creative.com',
+  enableAssignmentEmails: true,
+  enableDailyReminders: true,
+  lastDailyScanDate: '2026-08-17'
+};
+
+export const INITIAL_EMAIL_LOGS: EmailLog[] = [
+  {
+    id: 'eml-init-1',
+    taskId: 'tsk-ehab-1',
+    taskTitle: 'Ad Report from Campaign Start Date to Sunday',
+    recipientId: 'usr-ehab',
+    recipientName: 'Ehab Mohsen',
+    recipientEmail: 'ehab.m@rak4creative.com',
+    senderName: 'RAK 4 CREATIVE Traffic Operations',
+    senderEmail: 'traffic@rak4creative.com',
+    subject: '[RAK Traffic] New Task Assigned: Ad Report from Campaign Start Date to Sunday - Matrix / Johnson Dubai',
+    type: 'assigned',
+    htmlBody: '<p>New Task Assigned</p>',
+    textBody: 'New Task Assigned: Ad Report from Campaign Start Date to Sunday for Matrix / Johnson Dubai',
+    sentAt: '2026-08-10T09:30:00Z',
+    status: 'delivered',
+    provider: 'simulated'
+  },
+  {
+    id: 'eml-init-2',
+    taskId: 'tsk-khaled-1',
+    taskTitle: 'Feetlab UAE Social Media Story Highlights Refresh',
+    recipientId: 'usr-khaled',
+    recipientName: 'Khaled Soueid',
+    recipientEmail: 'khaled.s@rak4creative.com',
+    senderName: 'RAK 4 CREATIVE Traffic Operations',
+    senderEmail: 'traffic@rak4creative.com',
+    subject: '[🚨 OVERDUE - Daily Update #1] Feetlab UAE Social Media Story Highlights Refresh (1 day late)',
+    type: 'overdue',
+    htmlBody: '<p>Daily Overdue Escalation</p>',
+    textBody: 'URGENT: Task is 1 day overdue. Please complete or update status.',
+    sentAt: '2026-08-14T08:00:00Z',
+    status: 'delivered',
+    provider: 'simulated'
+  }
+];
+

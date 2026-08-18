@@ -14,6 +14,7 @@ import { ClientWipView } from '@/components/ClientWipView';
 import { RecurrenceView } from '@/components/RecurrenceView';
 import { EmployeeProfile } from '@/components/EmployeeProfile';
 import { ImportExportView } from '@/components/ImportExportView';
+import { EmailHubView } from '@/components/EmailHubView';
 import { TaskModal } from '@/components/TaskModal';
 import { BulkTaskModal } from '@/components/BulkTaskModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -512,7 +513,16 @@ export default function DashboardClient() {
           {/* View 6: Excel Migration */}
           {activeTab === 'excelMigration' && <ImportExportView store={store} state={state} />}
 
-          {/* View 7: Team & Settings */}
+          {/* View 7: Email Notifications & Logs Hub */}
+          {activeTab === 'emails' && (
+            <EmailHubView
+              store={store}
+              state={state}
+              onOpenTaskModal={handleOpenTask}
+            />
+          )}
+
+          {/* View 8: Team & Settings */}
           {activeTab === 'settings' && (
             <div className="bg-white rounded-2xl p-6 space-y-6 border border-slate-200 shadow-xs">
               <div className="border-b border-slate-100 pb-4">

@@ -12,6 +12,7 @@ export interface Translations {
   navRecurrence: string;
   navEmployeeAnalytics: string;
   navExcelMigration: string;
+  navEmails: string;
   navSettings: string;
   
   // Roles
@@ -136,6 +137,7 @@ export const translations: Record<Language, Translations> = {
     navRecurrence: "Recurring Rules",
     navEmployeeAnalytics: "Employee History",
     navExcelMigration: "Excel Migration",
+    navEmails: "Email Notifications & Logs",
     navSettings: "Team & Settings",
     
     roleAdmin: "Admin",
@@ -247,6 +249,7 @@ export const translations: Record<Language, Translations> = {
     navRecurrence: "المهام التكرارية",
     navEmployeeAnalytics: "سجل وإنتاجية الموظف",
     navExcelMigration: "استيراد ملفات الإكسيل",
+    navEmails: "مركز الإيميلات والإشعارات",
     navSettings: "الفريق والإعدادات",
     
     roleAdmin: "مسؤول النظام (Admin)",

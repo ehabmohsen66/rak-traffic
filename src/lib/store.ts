@@ -10,7 +10,10 @@ import {
   TaskStatus, 
   Priority, 
   UserRole,
-  TaskComment
+  TaskComment,
+  EmailLog,
+  EmailConfig,
+  EmailNotificationType
 } from './types';
 import { 
   INITIAL_USERS, 
@@ -18,8 +21,18 @@ import {
   INITIAL_TASKS, 
   INITIAL_RECURRENCE_RULES, 
   INITIAL_AUDIT_LOGS, 
-  INITIAL_NOTIFICATIONS 
+  INITIAL_NOTIFICATIONS,
+  INITIAL_EMAIL_CONFIG,
+  INITIAL_EMAIL_LOGS
 } from './mockData';
+import { 
+  sendTaskAssignedNotification, 
+  sendDueTodayNotification, 
+  sendOverdueDailyNotification, 
+  sendTaskCompletedNotification,
+  sendTestNotification
+} from './emailService';
+import { runDailyDeadlineScan, DailyScanResult } from './emailDailyScanner';
 
 const LOCAL_STORAGE_KEY = 'rak_traffic_state_v2';
 
@@ -30,6 +43,8 @@ export interface AppState {
   recurrenceRules: RecurrenceRule[];
   auditLogs: AuditLog[];
   notifications: Notification[];
+  emailLogs: EmailLog[];
+  emailConfig: EmailConfig;
   comments: Record<string, TaskComment[]>; // taskId -> TaskComment[]
   currentUserId: string;
   currentRole: UserRole;
@@ -43,6 +58,8 @@ const getInitialState = (): AppState => ({
   recurrenceRules: INITIAL_RECURRENCE_RULES,
   auditLogs: INITIAL_AUDIT_LOGS,
   notifications: INITIAL_NOTIFICATIONS,
+  emailLogs: INITIAL_EMAIL_LOGS,
+  emailConfig: INITIAL_EMAIL_CONFIG,
   comments: {
     'tsk-ehab-1': [
       {
@@ -72,7 +89,13 @@ export class TrafficStore {
       try {
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (saved) {
-          this.state = JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          this.state = {
+            ...this.state,
+            ...parsed,
+            emailLogs: parsed.emailLogs || INITIAL_EMAIL_LOGS,
+            emailConfig: { ...INITIAL_EMAIL_CONFIG, ...(parsed.emailConfig || {}) }
+          };
         }
       } catch (e) {
         console.error(e);
@@ -192,6 +215,11 @@ export class TrafficStore {
       }
     });
 
+    // 3. Auto Daily Email Scan Check (1 email per day for due today & overdue tasks)
+    if (this.state.emailConfig.enableDailyReminders && this.state.emailConfig.lastDailyScanDate !== todayStr) {
+      this.runDailyEmailScan().catch((err) => console.error('Auto daily email scan error:', err));
+    }
+
     if (stateChanged) {
       this.notify();
     }
@@ -272,6 +300,21 @@ export class TrafficStore {
       createdAt: new Date().toISOString()
     });
 
+    // Dispatch assignment email notification to assignee
+    if (this.state.emailConfig.enableAssignmentEmails) {
+      const assignee = this.state.users.find((u) => u.id === newTask.assignedToId);
+      const client = this.state.clients.find((c) => c.id === newTask.clientId);
+      if (assignee && assignee.email) {
+        sendTaskAssignedNotification(
+          { task: newTask, assignee, assigner: currentUser || null, client: client || null },
+          this.state.emailConfig
+        ).then((res) => {
+          this.state.emailLogs.unshift(res.log);
+          this.notify();
+        }).catch((err) => console.error('Task assignment email error:', err));
+      }
+    }
+
     this.notify();
     return newTask;
   }
@@ -322,6 +365,20 @@ export class TrafficStore {
           read: false,
           createdAt: new Date().toISOString()
         });
+
+        // Email Notification
+        if (this.state.emailConfig.enableAssignmentEmails) {
+          const assignee = this.state.users.find((u) => u.id === empId);
+          if (assignee && assignee.email) {
+            sendTaskAssignedNotification(
+              { task: newTask, assignee, assigner: currentUser || null, client: client || null },
+              this.state.emailConfig
+            ).then((res) => {
+              this.state.emailLogs.unshift(res.log);
+              this.notify();
+            }).catch((err) => console.error('Bulk assignment email error:', err));
+          }
+        }
       });
     });
 
@@ -362,7 +419,7 @@ export class TrafficStore {
       ...oldTask,
       ...updates,
       status: finalStatus,
-      completedDate: finalStatus === 'Completed' ? new Date().toISOString().split('T')[0] : oldTask.completedDate,
+      completedDate: finalStatus === 'Completed' ? (oldTask.completedDate || todayStr) : oldTask.completedDate,
       updatedAt: new Date().toISOString()
     };
 
@@ -394,6 +451,20 @@ export class TrafficStore {
           read: false,
           createdAt: new Date().toISOString()
         });
+
+        // Email manager upon task completion
+        const manager = this.state.users.find((u) => u.id === oldTask.assignedById);
+        const assignee = this.state.users.find((u) => u.id === updatedTask.assignedToId);
+        const client = this.state.clients.find((c) => c.id === updatedTask.clientId);
+        if (manager && assignee) {
+          sendTaskCompletedNotification(
+            { task: updatedTask, assignee, assigner: manager, client: client || null },
+            this.state.emailConfig
+          ).then((res) => {
+            this.state.emailLogs.unshift(res.log);
+            this.notify();
+          }).catch((err) => console.error('Task completed email error:', err));
+        }
       }
 
       // Trigger High Five Celebration Event
@@ -427,6 +498,21 @@ export class TrafficStore {
         read: false,
         createdAt: new Date().toISOString()
       });
+
+      // Dispatch reassignment email to new assignee
+      if (this.state.emailConfig.enableAssignmentEmails) {
+        const newAssignee = this.state.users.find((u) => u.id === updates.assignedToId);
+        const client = this.state.clients.find((c) => c.id === updatedTask.clientId);
+        if (newAssignee && newAssignee.email) {
+          sendTaskAssignedNotification(
+            { task: updatedTask, assignee: newAssignee, assigner: currentUser || null, client: client || null },
+            this.state.emailConfig
+          ).then((res) => {
+            this.state.emailLogs.unshift(res.log);
+            this.notify();
+          }).catch((err) => console.error('Reassignment email error:', err));
+        }
+      }
     }
 
     this.notify();
@@ -670,6 +756,147 @@ export class TrafficStore {
     return count;
   }
 
+  // --- EMAIL NOTIFICATION ACTIONS ---
+
+  /**
+   * Run Daily Email Scan for Due Today & Overdue tasks (Enforces 1 email/day rule per task)
+   */
+  public async runDailyEmailScan(force: boolean = false): Promise<DailyScanResult> {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const scanConfig = { ...this.state.emailConfig };
+
+    const scanResult = await runDailyDeadlineScan({
+      tasks: this.state.tasks,
+      users: this.state.users,
+      clients: this.state.clients,
+      config: scanConfig
+    });
+
+    // Update tasks with new lastEmailSentDate & reminder counts
+    scanResult.updatedTasks.forEach((update) => {
+      const t = this.state.tasks.find((task) => task.id === update.taskId);
+      if (t) {
+        t.lastEmailSentDate = update.lastEmailSentDate;
+        t.emailReminderCount = update.emailReminderCount;
+      }
+    });
+
+    // Prepend new email logs
+    if (scanResult.logs.length > 0) {
+      this.state.emailLogs.unshift(...scanResult.logs);
+    }
+
+    this.state.emailConfig.lastDailyScanDate = todayStr;
+
+    // Add Audit Log
+    if (scanResult.totalDispatched > 0) {
+      this.state.auditLogs.unshift({
+        id: `aud-${Date.now()}`,
+        taskId: 'daily-email-scan',
+        taskTitle: `Daily Deadline Email Dispatch (${scanResult.totalDispatched} emails)`,
+        changedById: 'SYSTEM',
+        changedByName: 'Daily Email Scheduler',
+        field: 'daily_email_dispatch',
+        oldValue: '0',
+        newValue: `${scanResult.totalDispatched} dispatched`,
+        timestamp: new Date().toISOString(),
+        actionSummary: `Dispatched ${scanResult.totalDispatched} daily reminder emails (${scanResult.dueTodaySent} due today, ${scanResult.overdueSent} overdue, ${scanResult.skippedAlreadySentToday} skipped as already sent today)`
+      });
+    }
+
+    this.notify();
+    return scanResult;
+  }
+
+  /**
+   * Manually dispatch a specific email for a task
+   */
+  public async sendCustomTaskEmail(taskId: string, type: EmailNotificationType) {
+    const task = this.state.tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error('Task not found');
+
+    const assignee = this.state.users.find((u) => u.id === task.assignedToId);
+    const assigner = this.state.users.find((u) => u.id === task.assignedById) || null;
+    const client = this.state.clients.find((c) => c.id === task.clientId) || null;
+
+    if (!assignee) throw new Error('Assignee not found');
+
+    let result;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (type === 'assigned') {
+      result = await sendTaskAssignedNotification(
+        { task, assignee, assigner, client },
+        this.state.emailConfig
+      );
+    } else if (type === 'due_today' || type === 'due_soon') {
+      result = await sendDueTodayNotification(
+        { task, assignee, assigner, client },
+        this.state.emailConfig
+      );
+      task.lastEmailSentDate = todayStr;
+      task.emailReminderCount = (task.emailReminderCount || 0) + 1;
+    } else if (type === 'overdue') {
+      const dueDateObj = new Date(task.dueDate);
+      const diffTime = dueDateObj.getTime() - new Date(todayStr).getTime();
+      const daysOverdue = Math.max(1, Math.abs(Math.ceil(diffTime / (1000 * 60 * 60 * 24))));
+
+      result = await sendOverdueDailyNotification(
+        { task, assignee, assigner, client, daysOverdue },
+        this.state.emailConfig
+      );
+      task.lastEmailSentDate = todayStr;
+      task.emailReminderCount = (task.emailReminderCount || 0) + 1;
+    } else if (type === 'completed') {
+      if (!assigner) throw new Error('Task manager not found');
+      result = await sendTaskCompletedNotification(
+        { task, assignee, assigner, client },
+        this.state.emailConfig
+      );
+    } else {
+      result = await sendTaskAssignedNotification(
+        { task, assignee, assigner, client },
+        this.state.emailConfig
+      );
+    }
+
+    this.state.emailLogs.unshift(result.log);
+    this.notify();
+    return result;
+  }
+
+  /**
+   * Send test email to verify credentials
+   */
+  public async sendTestEmail(recipientEmail: string, recipientName: string = 'Team Member') {
+    const result = await sendTestNotification(
+      { recipientName, recipientEmail },
+      this.state.emailConfig
+    );
+    this.state.emailLogs.unshift(result.log);
+    this.notify();
+    return result;
+  }
+
+  /**
+   * Update Email Configuration (Provider, API Keys, Senders, Toggles)
+   */
+  public updateEmailConfig(updates: Partial<EmailConfig>) {
+    this.state.emailConfig = {
+      ...this.state.emailConfig,
+      ...updates
+    };
+    this.notify();
+  }
+
+  /**
+   * Clear outbox logs
+   */
+  public clearEmailLogs() {
+    this.state.emailLogs = [];
+    this.notify();
+  }
+
   // Utility helpers
   public getUserName(userId: string): string {
     return this.state.users.find((u) => u.id === userId)?.name || 'Unknown User';
@@ -682,3 +909,4 @@ export class TrafficStore {
 
 // Global Singleton Instance
 export const store = new TrafficStore();
+

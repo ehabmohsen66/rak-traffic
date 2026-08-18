@@ -102,6 +102,8 @@ export interface Task {
   attachments?: TaskAttachment[];
   recurrenceRuleId?: string | null;
   isRecurring?: boolean;
+  lastEmailSentDate?: string | null; // Track date (YYYY-MM-DD) of last sent email reminder
+  emailReminderCount?: number; // Total number of deadline/overdue reminder emails sent
   createdAt?: string;
   updatedAt?: string;
 }
@@ -150,3 +152,48 @@ export interface Notification {
   read: boolean;
   createdAt: string;
 }
+
+export type EmailNotificationType = 
+  | 'assigned' 
+  | 'reassigned' 
+  | 'due_soon' 
+  | 'due_today' 
+  | 'overdue' 
+  | 'completed' 
+  | 'test';
+
+export type EmailDeliveryStatus = 'sent' | 'delivered' | 'failed' | 'simulated';
+
+export interface EmailLog {
+  id: string;
+  taskId?: string;
+  taskTitle?: string;
+  recipientId: string;
+  recipientName: string;
+  recipientEmail: string;
+  senderName: string;
+  senderEmail: string;
+  subject: string;
+  type: EmailNotificationType;
+  htmlBody: string;
+  textBody: string;
+  sentAt: string;
+  status: EmailDeliveryStatus;
+  provider: string;
+  errorMessage?: string;
+}
+
+export type EmailProviderType = 'vercel' | 'resend' | 'sendgrid' | 'brevo' | 'webhook' | 'simulated';
+
+export interface EmailConfig {
+  provider: EmailProviderType;
+  apiKey?: string;
+  fromName: string;
+  fromEmail: string;
+  replyTo?: string;
+  webhookUrl?: string;
+  enableAssignmentEmails: boolean;
+  enableDailyReminders: boolean;
+  lastDailyScanDate?: string;
+}
+
