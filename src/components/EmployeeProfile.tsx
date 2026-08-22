@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
 import { User, Task, AuditLog } from '@/lib/types';
@@ -31,16 +31,12 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
 }) => {
   const t = translations[state.language];
 
-  const [activeUserId, setActiveUserId] = useState(
-    selectedUserId || state.users.find((u) => u.role === 'employee')?.id || state.users[2].id
+  type Timeframe = 'thisWeek' | 'lastMonth' | 'last30Days' | 'all';
+  const [localActiveUserId, setLocalActiveUserId] = useState(
+    state.users.find((u) => u.role === 'employee')?.id || state.users[2].id
   );
-
-  useEffect(() => {
-    if (selectedUserId && selectedUserId !== activeUserId) {
-      setActiveUserId(selectedUserId);
-    }
-  }, [selectedUserId]);
-  const [timeframe, setTimeframe] = useState<'thisWeek' | 'lastMonth' | 'last30Days' | 'all'>('last30Days');
+  const activeUserId = selectedUserId || localActiveUserId;
+  const [timeframe, setTimeframe] = useState<Timeframe>('last30Days');
 
   const selectedUser = state.users.find((u) => u.id === activeUserId) || state.users[0];
 
@@ -128,7 +124,7 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Historical activity log and performance analytics ("What did this person do last month?").
+              Historical activity log and performance analytics (&quot;What did this person do last month?&quot;).
             </p>
           </div>
         </div>
@@ -140,7 +136,7 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
             value={activeUserId}
             onChange={(e) => {
               const newId = e.target.value;
-              setActiveUserId(newId);
+              setLocalActiveUserId(newId);
               if (onSelectUser) onSelectUser(newId);
             }}
             className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-xs cursor-pointer"
@@ -168,7 +164,7 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
           {/* Timeframe Filter */}
           <select
             value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value as any)}
+            onChange={(e) => setTimeframe(e.target.value as Timeframe)}
             className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-xs cursor-pointer"
           >
             <option value="thisWeek">{t.thisWeek}</option>

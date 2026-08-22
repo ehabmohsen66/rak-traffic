@@ -26,6 +26,7 @@ export type MainTab =
   | 'employeeHistory' 
   | 'excelMigration'
   | 'emails'
+  | 'emailSettings'
   | 'settings';
 
 interface SidebarProps {
@@ -154,6 +155,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ state, activeTab, setActiveTab
       icon: Mail,
       badge: state.emailLogs.length,
       badgeColor: 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold',
+    },
+    {
+      id: 'emailSettings' as MainTab,
+      label: state.language === 'ar' ? 'إعدادات البريد' : 'Email Settings',
+      icon: Settings,
+      badge: 'Resend',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold',
     },
     {
       id: 'settings' as MainTab,

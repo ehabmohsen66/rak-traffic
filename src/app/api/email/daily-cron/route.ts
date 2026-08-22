@@ -2,12 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runDailyDeadlineScan } from '@/lib/emailDailyScanner';
 import { INITIAL_USERS, INITIAL_CLIENTS, INITIAL_TASKS } from '@/lib/mockData';
 import { DEFAULT_EMAIL_CONFIG } from '@/lib/emailService';
+import { getPublicBaseUrl } from '@/lib/requestUrl';
+import { getErrorMessage } from '@/lib/errors';
 import { EmailConfig, Task, User, Client } from '@/lib/types';
 
+function isAuthorized(req: NextRequest): boolean {
+  const expectedSecret = process.env.CRON_SECRET;
+
+  // Never expose a production cron endpoint without an explicit secret.
+  if (!expectedSecret) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  const authorization = req.headers.get('authorization');
+  const headerSecret = req.headers.get('x-cron-secret');
+  return authorization === `Bearer ${expectedSecret}` || headerSecret === expectedSecret;
+}
+
+function unauthorizedResponse() {
+  const status = process.env.CRON_SECRET ? 401 : 503;
+  const error = process.env.CRON_SECRET
+    ? 'Unauthorized cron request'
+    : 'CRON_SECRET is not configured on the server';
+
+  return NextResponse.json({ error }, { status });
+}
+
 export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
+
   try {
-    const url = new URL(req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const baseUrl = getPublicBaseUrl(req);
 
     // Run scan with tasks
     const scanResult = await runDailyDeadlineScan({
@@ -22,15 +49,19 @@ export async function GET(req: NextRequest) {
       message: 'Daily deadline email scan executed successfully.',
       ...scanResult
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error?.message || 'Error running daily cron scan' },
+      { error: getErrorMessage(error, 'Error running daily cron scan') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const body = await req.json();
     const { 
@@ -45,8 +76,7 @@ export async function POST(req: NextRequest) {
       config?: EmailConfig 
     } = body;
 
-    const url = new URL(req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const baseUrl = getPublicBaseUrl(req);
 
     const scanResult = await runDailyDeadlineScan({
       tasks: tasks || INITIAL_TASKS,
@@ -60,9 +90,9 @@ export async function POST(req: NextRequest) {
       message: 'Daily deadline email scan completed.',
       ...scanResult
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error?.message || 'Error running daily cron scan' },
+      { error: getErrorMessage(error, 'Error running daily cron scan') },
       { status: 500 }
     );
   }

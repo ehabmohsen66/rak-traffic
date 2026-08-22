@@ -13,7 +13,9 @@ import {
   TaskComment,
   EmailLog,
   EmailConfig,
-  EmailNotificationType
+  EmailNotificationType,
+  RetainerType,
+  ClientTier
 } from './types';
 import { 
   INITIAL_USERS, 
@@ -90,6 +92,11 @@ export class TrafficStore {
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
+          // API credentials must never survive in browser storage. Older
+          // versions saved this field locally, so strip it during migration.
+          if (parsed.emailConfig) {
+            delete parsed.emailConfig.apiKey;
+          }
           this.state = {
             ...this.state,
             ...parsed,
@@ -214,11 +221,6 @@ export class TrafficStore {
         });
       }
     });
-
-    // 3. Auto Daily Email Scan Check (1 email per day for due today & overdue tasks)
-    if (this.state.emailConfig.enableDailyReminders && this.state.emailConfig.lastDailyScanDate !== todayStr) {
-      this.runDailyEmailScan().catch((err) => console.error('Auto daily email scan error:', err));
-    }
 
     if (stateChanged) {
       this.notify();
@@ -732,8 +734,11 @@ export class TrafficStore {
         (u) => u.name.toLowerCase().includes(row.accountOwner?.toLowerCase() || '')
       ) || this.state.users[1];
 
-      const retainer: any = row.retainerType || 'SM & DIGITAL';
-      const tier: any = row.tier || 'REGULAR';
+      const retainer: RetainerType = row.retainerType?.trim() || 'SM & DIGITAL';
+      const importedTier = row.tier?.trim().toUpperCase();
+      const tier: ClientTier = importedTier === 'LIGHT' || importedTier === 'BIG'
+        ? importedTier
+        : 'REGULAR';
 
       if (existingIndex !== -1) {
         this.state.clients[existingIndex].retainerType = retainer;
@@ -882,9 +887,12 @@ export class TrafficStore {
    * Update Email Configuration (Provider, API Keys, Senders, Toggles)
    */
   public updateEmailConfig(updates: Partial<EmailConfig>) {
+    const safeUpdates = { ...updates };
+    delete safeUpdates.apiKey;
     this.state.emailConfig = {
       ...this.state.emailConfig,
-      ...updates
+      ...safeUpdates,
+      apiKey: undefined
     };
     this.notify();
   }
@@ -909,4 +917,3 @@ export class TrafficStore {
 
 // Global Singleton Instance
 export const store = new TrafficStore();
-

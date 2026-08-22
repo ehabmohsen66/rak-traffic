@@ -6,6 +6,7 @@ import {
   generateTaskCompletedEmail, 
   generateTestEmail 
 } from './emailTemplates';
+import { getErrorMessage } from './errors';
 
 export interface SendEmailPayload {
   to: { name: string; email: string; id?: string };
@@ -37,10 +38,13 @@ export async function sendEmail(
   // If running in browser client, forward dispatch through secure Next.js API route
   if (typeof window !== 'undefined') {
     try {
+      // Never transmit or persist provider credentials from browser state.
+      const safeConfig = { ...config };
+      delete safeConfig.apiKey;
       const response = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload, config })
+        body: JSON.stringify({ payload, config: safeConfig })
       });
 
       if (!response.ok) {
@@ -50,7 +54,7 @@ export async function sendEmail(
 
       const result = await response.json();
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Client email dispatch error:', err);
       const fallbackLog: EmailLog = {
         id: `eml-${Date.now()}`,
@@ -68,15 +72,15 @@ export async function sendEmail(
         sentAt: new Date().toISOString(),
         status: 'failed',
         provider: config.provider,
-        errorMessage: err?.message || 'Failed to dispatch via API'
+        errorMessage: getErrorMessage(err, 'Failed to dispatch via API')
       };
-      return { success: false, log: fallbackLog, error: err?.message };
+      return { success: false, log: fallbackLog, error: getErrorMessage(err, 'Failed to dispatch via API') };
     }
   }
 
   // Server-side execution
-  const senderName = payload.from?.name || config.fromName || 'RAK 4 CREATIVE Traffic';
-  let senderEmail = payload.from?.email || config.fromEmail || 'onboarding@resend.dev';
+  const senderName = process.env.EMAIL_FROM_NAME || payload.from?.name || config.fromName || 'RAK 4 CREATIVE Traffic';
+  const senderEmail = process.env.EMAIL_FROM || payload.from?.email || config.fromEmail || 'onboarding@resend.dev';
 
   const logId = `eml-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
   const sentAt = new Date().toISOString();
@@ -84,19 +88,42 @@ export async function sendEmail(
   let deliveryStatus: EmailDeliveryStatus = 'simulated';
   let errorMessage: string | undefined;
 
-  const activeProvider = config.provider || (process.env.EMAIL_PROVIDER as EmailProviderType) || 'vercel';
-  const effectiveApiKey = config.apiKey || 
+  // Server environment values take precedence so credentials remain centrally
+  // managed by cPanel instead of depending on browser-local configuration.
+  const isProduction = process.env.NODE_ENV === 'production';
+  const activeProvider =
+    (process.env.EMAIL_PROVIDER as EmailProviderType) ||
+    (isProduction ? 'simulated' : config.provider) ||
+    'simulated';
+  const effectiveApiKey =
     (activeProvider === 'vercel' || activeProvider === 'resend' ? process.env.RESEND_API_KEY : '') ||
     (activeProvider === 'sendgrid' ? process.env.SENDGRID_API_KEY : '') ||
-    (activeProvider === 'brevo' ? process.env.BREVO_API_KEY : '');
-  const effectiveWebhookUrl = config.webhookUrl || process.env.EMAIL_WEBHOOK_URL;
+    (activeProvider === 'brevo' ? process.env.BREVO_API_KEY : '') ||
+    (!isProduction ? config.apiKey : undefined);
+  const effectiveWebhookUrl = process.env.EMAIL_WEBHOOK_URL || (!isProduction ? config.webhookUrl : undefined);
+  const effectiveReplyTo = process.env.EMAIL_REPLY_TO || config.replyTo || senderEmail;
 
   try {
+    if (isProduction && activeProvider !== 'simulated') {
+      const allowedDomains = (process.env.EMAIL_ALLOWED_DOMAINS || '')
+        .split(',')
+        .map((domain) => domain.trim().toLowerCase())
+        .filter(Boolean);
+      const recipientDomain = payload.to.email.split('@').pop()?.toLowerCase();
+
+      if (allowedDomains.length === 0) {
+        throw new Error('Live email delivery is disabled until EMAIL_ALLOWED_DOMAINS is configured on the server.');
+      }
+      if (!recipientDomain || !allowedDomains.includes(recipientDomain)) {
+        throw new Error(`Email delivery to @${recipientDomain || 'unknown'} is not allowed by the server configuration.`);
+      }
+    }
+
     switch (activeProvider) {
       case 'vercel':
       case 'resend': {
         if (!effectiveApiKey) {
-          throw new Error('Resend API key is missing. Please add RESEND_API_KEY in your Vercel Project Settings (Settings -> Environment Variables -> RESEND_API_KEY) or enter it in the Settings tab.');
+          throw new Error('Resend is not configured on the server. Add RESEND_API_KEY to the cPanel Node.js environment.');
         }
 
         // If using test onboarding address, format appropriately
@@ -114,7 +141,7 @@ export async function sendEmail(
             subject: payload.subject,
             html: payload.html,
             text: payload.text,
-            reply_to: config.replyTo || senderEmail
+            reply_to: effectiveReplyTo
           })
         });
 
@@ -144,7 +171,7 @@ export async function sendEmail(
           body: JSON.stringify({
             personalizations: [{ to: [{ email: payload.to.email, name: payload.to.name }] }],
             from: { email: senderEmail, name: senderName },
-            reply_to: config.replyTo ? { email: config.replyTo } : undefined,
+            reply_to: effectiveReplyTo ? { email: effectiveReplyTo } : undefined,
             subject: payload.subject,
             content: [
               { type: 'text/plain', value: payload.text },
@@ -175,7 +202,7 @@ export async function sendEmail(
           body: JSON.stringify({
             sender: { name: senderName, email: senderEmail },
             to: [{ name: payload.to.name, email: payload.to.email }],
-            replyTo: config.replyTo ? { email: config.replyTo } : undefined,
+            replyTo: effectiveReplyTo ? { email: effectiveReplyTo } : undefined,
             subject: payload.subject,
             htmlContent: payload.html,
             textContent: payload.text
@@ -227,10 +254,10 @@ export async function sendEmail(
         break;
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Email dispatch failed:', err);
     deliveryStatus = 'failed';
-    errorMessage = err?.message || 'Failed to dispatch email';
+    errorMessage = getErrorMessage(err, 'Failed to dispatch email');
   }
 
   const log: EmailLog = {
@@ -248,7 +275,7 @@ export async function sendEmail(
     textBody: payload.text,
     sentAt,
     status: deliveryStatus,
-    provider: config.provider,
+    provider: activeProvider,
     errorMessage
   };
 

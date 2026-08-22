@@ -14,7 +14,12 @@ export const HighFiveCelebration: React.FC<HighFiveCelebrationProps> = ({ taskTi
   useEffect(() => {
     // Trigger the slap / clap sound effect (synthesized via Web Audio API)
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const webkitWindow = window as Window & typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioContextConstructor = window.AudioContext || webkitWindow.webkitAudioContext;
+      if (!AudioContextConstructor) throw new Error('Web Audio is unavailable');
+      const audioCtx = new AudioContextConstructor();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       
@@ -30,7 +35,7 @@ export const HighFiveCelebration: React.FC<HighFiveCelebrationProps> = ({ taskTi
       
       osc.start();
       osc.stop(audioCtx.currentTime + 0.25);
-    } catch (e) {
+    } catch {
       // Audio autoplay policy fallback
     }
 

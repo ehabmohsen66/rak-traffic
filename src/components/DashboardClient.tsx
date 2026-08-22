@@ -79,6 +79,8 @@ export default function DashboardClient() {
     const urlParams = readUrlParams();
 
     if (urlParams.tab) {
+      // URL state is an external browser input that must initialize this view.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(urlParams.tab);
     }
     if (urlParams.user && state.users.some((u) => u.id === urlParams.user)) {
@@ -519,10 +521,21 @@ export default function DashboardClient() {
               store={store}
               state={state}
               onOpenTaskModal={handleOpenTask}
+              initialTab="preview"
             />
           )}
 
-          {/* View 8: Team & Settings */}
+          {/* View 8: Secure server email configuration */}
+          {activeTab === 'emailSettings' && (
+            <EmailHubView
+              store={store}
+              state={state}
+              onOpenTaskModal={handleOpenTask}
+              initialTab="settings"
+            />
+          )}
+
+          {/* View 9: Team & Settings */}
           {activeTab === 'settings' && (
             <div className="bg-white rounded-2xl p-6 space-y-6 border border-slate-200 shadow-xs">
               <div className="border-b border-slate-100 pb-4">

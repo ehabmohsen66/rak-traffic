@@ -173,7 +173,7 @@ RAK Real Estate,BRANDING & STRATEGY,BIG,Sarah Jenkins
               <h3 className="text-base font-bold text-slate-900">{t.uploadTrafficSheet}</h3>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Upload your legacy per-employee Traffic Excel or CSV sheet containing columns: 
+              Upload your legacy per-employee Traffic CSV sheet containing columns:
               <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded ml-1 font-mono">Task Manager</code>, <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-mono">Client</code>, <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-mono">Task Brief</code>, <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-mono">Status</code>, <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-mono">Priority</code>, <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-mono">Brief Date</code>, <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-mono">Due Date</code>.
             </p>
           </div>
@@ -182,7 +182,7 @@ RAK Real Estate,BRANDING & STRATEGY,BIG,Sarah Jenkins
             <label className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50/70 hover:bg-indigo-50/20">
               <Upload className="w-8 h-8 text-slate-400 mb-2" />
               <span className="text-xs font-bold text-slate-800">{t.dropFileHere}</span>
-              <span className="text-[10px] text-slate-400 mt-1">Supports .csv and .xlsx exported files</span>
+              <span className="text-[10px] text-slate-400 mt-1">Supports UTF-8 .csv files</span>
               <input
                 type="file"
                 accept=".csv"
@@ -218,7 +218,7 @@ RAK Real Estate,BRANDING & STRATEGY,BIG,Sarah Jenkins
             <label className="border-2 border-dashed border-slate-300 hover:border-sky-500 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50/70 hover:bg-sky-50/20">
               <Upload className="w-8 h-8 text-slate-400 mb-2" />
               <span className="text-xs font-bold text-slate-800">{t.dropFileHere}</span>
-              <span className="text-[10px] text-slate-400 mt-1">Supports .csv and .xlsx exported files</span>
+              <span className="text-[10px] text-slate-400 mt-1">Supports UTF-8 .csv files</span>
               <input
                 type="file"
                 accept=".csv"

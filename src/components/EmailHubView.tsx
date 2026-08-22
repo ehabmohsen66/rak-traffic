@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
 import { 
@@ -16,6 +16,7 @@ import {
   generateTaskCompletedEmail, 
   generateTestEmail 
 } from '@/lib/emailTemplates';
+import { getErrorMessage } from '@/lib/errors';
 import { 
   Mail, 
   Send, 
@@ -43,13 +44,30 @@ interface EmailHubViewProps {
   store: TrafficStore;
   state: AppState;
   onOpenTaskModal?: (task: Task) => void;
+  initialTab?: 'preview' | 'logs' | 'settings';
 }
 
-export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpenTaskModal }) => {
+interface EmailServerStatus {
+  provider: EmailProviderType;
+  credentialConfigured: boolean;
+  deliveryMode: 'simulated' | 'live';
+  fromName: string | null;
+  fromEmail: string | null;
+  replyTo: string | null;
+  allowedDomains: string[];
+  serverManaged: true;
+}
+
+export const EmailHubView: React.FC<EmailHubViewProps> = ({
+  store,
+  state,
+  onOpenTaskModal,
+  initialTab = 'preview',
+}) => {
   const t = translations[state.language];
   const isRtl = state.language === 'ar';
 
-  const [activeTab, setActiveTab] = useState<'preview' | 'logs' | 'settings'>('preview');
+  const [activeTab, setActiveTab] = useState<'preview' | 'logs' | 'settings'>(initialTab);
 
   // Previewer State
   const [selectedTemplate, setSelectedTemplate] = useState<EmailNotificationType>('assigned');
@@ -68,11 +86,9 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
 
   // Settings State
   const [provider, setProvider] = useState<EmailProviderType>(state.emailConfig.provider || 'simulated');
-  const [apiKey, setApiKey] = useState(state.emailConfig.apiKey || '');
   const [fromName, setFromName] = useState(state.emailConfig.fromName || 'RAK 4 CREATIVE Traffic');
   const [fromEmail, setFromEmail] = useState(state.emailConfig.fromEmail || 'traffic@rak4creative.com');
   const [replyTo, setReplyTo] = useState(state.emailConfig.replyTo || 'farah.y@rak4creative.com');
-  const [webhookUrl, setWebhookUrl] = useState(state.emailConfig.webhookUrl || '');
   const [enableAssignmentEmails, setEnableAssignmentEmails] = useState(state.emailConfig.enableAssignmentEmails);
   const [enableDailyReminders, setEnableDailyReminders] = useState(state.emailConfig.enableDailyReminders);
   const [testEmailRecipient, setTestEmailRecipient] = useState(
@@ -81,6 +97,36 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [dailyScanRunning, setDailyScanRunning] = useState(false);
   const [dailyScanResultBanner, setDailyScanResultBanner] = useState<string | null>(null);
+  const [serverStatus, setServerStatus] = useState<EmailServerStatus | null>(null);
+  const [serverStatusLoading, setServerStatusLoading] = useState(true);
+  const [serverStatusError, setServerStatusError] = useState<string | null>(null);
+
+  const loadServerStatus = useCallback(async () => {
+    setServerStatusLoading(true);
+    setServerStatusError(null);
+    try {
+      const response = await fetch('/api/email/config', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP ${response.status}`);
+      }
+      const status: EmailServerStatus = await response.json();
+      setServerStatus(status);
+      setProvider(status.provider);
+      if (status.fromName) setFromName(status.fromName);
+      if (status.fromEmail) setFromEmail(status.fromEmail);
+      if (status.replyTo) setReplyTo(status.replyTo);
+    } catch (error) {
+      setServerStatusError(error instanceof Error ? error.message : 'Unable to read server email status');
+    } finally {
+      setServerStatusLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Synchronize with the external server configuration endpoint on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadServerStatus();
+  }, [loadServerStatus]);
 
   // Compute selected task object for live preview
   const currentTask = useMemo(() => {
@@ -183,15 +229,18 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
     setSendingTest(true);
     setTestSuccessMessage(null);
     try {
-      const res = await store.sendCustomTaskEmail(currentTask.id, selectedTemplate);
+      const result = await store.sendCustomTaskEmail(currentTask.id, selectedTemplate);
+      if (!result.success) {
+        throw new Error(result.error || 'The email provider rejected this message.');
+      }
       setTestSuccessMessage(
         state.language === 'ar'
           ? `تم إرسال بريد "${renderedEmail.subject}" بنجاح إلى ${currentAssignee.email}!`
           : `Email "${renderedEmail.subject}" successfully sent to ${currentAssignee.email}!`
       );
       setTimeout(() => setTestSuccessMessage(null), 5000);
-    } catch (err: any) {
-      alert(`Error sending email: ${err.message}`);
+    } catch (err: unknown) {
+      alert(`Error sending email: ${getErrorMessage(err, 'Unknown delivery error')}`);
     } finally {
       setSendingTest(false);
     }
@@ -202,11 +251,9 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
     e.preventDefault();
     store.updateEmailConfig({
       provider,
-      apiKey: apiKey.trim(),
       fromName: fromName.trim(),
       fromEmail: fromEmail.trim(),
       replyTo: replyTo.trim(),
-      webhookUrl: webhookUrl.trim(),
       enableAssignmentEmails,
       enableDailyReminders
     });
@@ -225,8 +272,8 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
           ? `اكتمل الفحص اليومي: تم مسح ${scanResult.totalActiveTasksScanned} مهمة نشطة. تم إرسال ${scanResult.totalDispatched} بريد (${scanResult.dueTodaySent} تسليم اليوم، ${scanResult.overdueSent} متأخرة، وتخطي ${scanResult.skippedAlreadySentToday} أُرسلت اليوم بالفعل).`
           : `Daily scan complete: Scanned ${scanResult.totalActiveTasksScanned} active tasks. Dispatched ${scanResult.totalDispatched} emails (${scanResult.dueTodaySent} due today, ${scanResult.overdueSent} overdue, and skipped ${scanResult.skippedAlreadySentToday} already sent today).`
       );
-    } catch (err: any) {
-      alert(`Error running scan: ${err.message}`);
+    } catch (err: unknown) {
+      alert(`Error running scan: ${getErrorMessage(err, 'Unknown scan error')}`);
     } finally {
       setDailyScanRunning(false);
     }
@@ -371,7 +418,7 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Active Dispatcher:</span>
           <span className="uppercase text-slate-900 font-extrabold bg-slate-100 px-2 py-0.5 rounded-md">
-            {state.emailConfig.provider}
+            {serverStatus?.provider || provider}
           </span>
         </div>
       </div>
@@ -751,85 +798,84 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
             <div className="border-b border-slate-100 pb-4">
               <h3 className="text-base font-bold text-slate-900">Email Dispatcher Configuration</h3>
               <p className="text-xs text-slate-500">
-                Configure your active email delivery provider, API keys, sender credentials, and automated rules.
+                Check the secure server connection and manage workspace sender previews and notification rules.
               </p>
             </div>
 
             <form onSubmit={handleSaveConfig} className="space-y-5 text-xs">
-              {/* Provider Selection */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-2">Delivery Provider Service</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { id: 'vercel' as EmailProviderType, title: '▲ Vercel Email / Resend (Default)', desc: 'Official Vercel email partner. Works with RESEND_API_KEY & onboarding@resend.dev.' },
-                    { id: 'simulated' as EmailProviderType, title: '🧪 Simulated / Dev Outbox', desc: 'No API key needed. Instant in-app log & preview.' },
-                    { id: 'resend' as EmailProviderType, title: '⚡ Resend Custom Domain', desc: 'Custom domain verified in Resend.' },
-                    { id: 'sendgrid' as EmailProviderType, title: '📮 SendGrid REST API', desc: 'Twilio SendGrid v3 API.' },
-                    { id: 'brevo' as EmailProviderType, title: '✉️ Brevo (Sendinblue)', desc: 'Brevo transactional SMTP API.' },
-                    { id: 'webhook' as EmailProviderType, title: '🔗 Custom Webhook', desc: 'POST JSON payload to your custom server.' }
-                  ].map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => setProvider(p.id)}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        provider === p.id
-                          ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 font-bold text-indigo-950'
-                          : 'bg-slate-50 hover:bg-white border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      <div className="font-bold text-xs">{p.title}</div>
-                      <div className="text-[10px] text-slate-500 font-normal mt-1 leading-snug">{p.desc}</div>
+              {/* Secure server-side delivery connection */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <h4 className="font-bold text-slate-900">Server Delivery Connection</h4>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* API Key Field (if vercel, resend, sendgrid, brevo) */}
-              {(provider === 'vercel' || provider === 'resend' || provider === 'sendgrid' || provider === 'brevo') && (
-                <div className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block font-bold text-indigo-950">
-                      {provider === 'vercel' ? 'Vercel / Resend API Key (RESEND_API_KEY):' : `${provider.toUpperCase()} API Key:`}
-                    </label>
-                    {provider === 'vercel' && (
-                      <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
-                        Auto-detected from Vercel
-                      </span>
-                    )}
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      The Resend API key is stored only in cPanel and is never returned to this browser.
+                    </p>
                   </div>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={provider === 'vercel' || provider === 'resend' ? 're_123456789...' : 'SG.xxxxx...'}
-                    className="w-full bg-white border border-indigo-300 rounded-xl p-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-indigo-500"
-                  />
-                  <p className="text-[11px] text-indigo-800">
-                    {provider === 'vercel'
-                      ? 'On Vercel, click "Integrations" → "Resend" or add RESEND_API_KEY in Project Settings. If empty, emails will run in verified preview mode.'
-                      : 'Your key is stored securely in your local environment and used to dispatch transactional emails via standard REST endpoints.'}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void loadServerStatus()}
+                    disabled={serverStatusLoading}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {serverStatusLoading ? 'Checking…' : 'Refresh Status'}
+                  </button>
                 </div>
-              )}
 
-              {/* Webhook URL Field */}
-              {provider === 'webhook' && (
-                <div className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl space-y-2">
-                  <label className="block font-bold text-indigo-950">Webhook Endpoint URL:</label>
-                  <input
-                    type="url"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    placeholder="https://your-api.com/webhooks/traffic-emails"
-                    className="w-full bg-white border border-indigo-300 rounded-xl p-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-indigo-500"
-                  />
+                {serverStatusError ? (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                    Unable to check server configuration: {serverStatusError}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">Provider</div>
+                      <div className="mt-1 font-black uppercase text-slate-900">
+                        {serverStatus?.provider || 'Checking…'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">API Credential</div>
+                      <div className={`mt-1 font-black ${serverStatus?.provider === 'simulated' || serverStatus?.credentialConfigured ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {serverStatusLoading
+                          ? 'Checking…'
+                          : serverStatus?.provider === 'simulated'
+                            ? 'Not required'
+                          : serverStatus?.credentialConfigured
+                            ? 'Configured securely'
+                            : 'Missing on server'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">Delivery</div>
+                      <div className={`mt-1 font-black uppercase ${serverStatus?.deliveryMode === 'live' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {serverStatus?.deliveryMode || 'Checking…'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-900">
+                  In cPanel → <strong>Setup Node.js App</strong> → Environment Variables, set
+                  <code className="mx-1 rounded bg-indigo-100 px-1 py-0.5 font-mono">EMAIL_PROVIDER=resend</code>
+                  and <code className="rounded bg-indigo-100 px-1 py-0.5 font-mono">RESEND_API_KEY</code>, then restart the app.
+                  The key value is intentionally never displayed here.
                 </div>
-              )}
+
+                {serverStatus?.allowedDomains.length ? (
+                  <div className="text-[11px] text-slate-600">
+                    Allowed recipient domains: <strong>{serverStatus.allowedDomains.join(', ')}</strong>
+                  </div>
+                ) : null}
+              </div>
 
               {/* Sender Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Sender Name (From)</label>
+                  <label className="block font-bold text-slate-700 mb-1">Workspace Sender Name</label>
                   <input
                     type="text"
                     value={fromName}
@@ -840,7 +886,7 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Sender Email (From)</label>
+                  <label className="block font-bold text-slate-700 mb-1">Workspace Sender Email</label>
                   <input
                     type="email"
                     value={fromEmail}
@@ -956,8 +1002,8 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({ store, state, onOpen
                       } else {
                         alert(`⚠️ Delivery Failed:\n${res.error || res.log?.errorMessage || 'Check outbox logs for error details'}`);
                       }
-                    } catch (err: any) {
-                      alert(`Test failed: ${err.message}`);
+                    } catch (err: unknown) {
+                      alert(`Test failed: ${getErrorMessage(err, 'Unknown delivery error')}`);
                     }
                   }}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"

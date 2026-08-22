@@ -13,6 +13,7 @@ import {
   Check
 } from 'lucide-react';
 import { EmailNotificationType } from '@/lib/types';
+import { getErrorMessage } from '@/lib/errors';
 
 interface TaskModalProps {
   store: TrafficStore;
@@ -60,8 +61,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           : `Email notification successfully dispatched to ${assigneeName}!`
       );
       setTimeout(() => setEmailSuccessMsg(null), 4000);
-    } catch (err: any) {
-      alert(`Error sending email: ${err.message}`);
+    } catch (err: unknown) {
+      alert(`Error sending email: ${getErrorMessage(err, 'Unknown delivery error')}`);
     } finally {
       setSendingEmail(false);
     }

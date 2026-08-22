@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendTestNotification } from '@/lib/emailService';
+import { getPublicBaseUrl } from '@/lib/requestUrl';
+import { getErrorMessage } from '@/lib/errors';
 import { EmailConfig } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
@@ -22,8 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const url = new URL(req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const baseUrl = getPublicBaseUrl(req);
 
     const result = await sendTestNotification(
       { recipientName: recipientName || 'Team Member', recipientEmail, baseUrl },
@@ -31,9 +32,9 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error?.message || 'Error sending test email' },
+      { error: getErrorMessage(error, 'Error sending test email') },
       { status: 500 }
     );
   }

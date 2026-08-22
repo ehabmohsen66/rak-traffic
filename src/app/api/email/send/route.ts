@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendEmail } from '@/lib/emailService';
+import { sendEmail, SendEmailPayload } from '@/lib/emailService';
+import { getErrorMessage } from '@/lib/errors';
 import { EmailConfig } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { payload, config }: { payload: any; config?: EmailConfig } = body;
+    const body = await req.json() as { payload?: SendEmailPayload; config?: EmailConfig };
+    const { payload, config } = body;
 
     if (!payload || !payload.to || !payload.subject) {
       return NextResponse.json(
@@ -16,9 +17,9 @@ export async function POST(req: NextRequest) {
 
     const result = await sendEmail(payload, config);
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error?.message || 'Internal server error while sending email' },
+      { error: getErrorMessage(error, 'Internal server error while sending email') },
       { status: 500 }
     );
   }

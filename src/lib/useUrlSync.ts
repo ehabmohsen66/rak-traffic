@@ -29,6 +29,8 @@ export function readUrlParams(): Partial<UrlParamsState> {
     'recurrence',
     'employeeHistory',
     'excelMigration',
+    'emails',
+    'emailSettings',
     'settings'
   ];
 
