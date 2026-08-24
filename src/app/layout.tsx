@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL || 'https://rak4dev.com'),
   title: 'RAK 4 CREATIVE - Traffic & Workflow Management',
   description: 'Agency traffic control system replacing manual Excel sheets with automated delay detection, recurring task generation, and employee performance analytics.',
 };
