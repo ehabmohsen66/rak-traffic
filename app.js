@@ -4,12 +4,15 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 const next = require('next');
 
-const port = Number.parseInt(process.env.PORT || '3000', 10);
+const dev = process.env.NODE_ENV !== 'production';
+const rawPort = process.env.PORT;
+const isNumericPort = rawPort && !Number.isNaN(Number(rawPort));
+const port = isNumericPort ? Number(rawPort) : 3000;
 const hostname = process.env.APP_HOST || '0.0.0.0';
+
 const app = next({
-  dev: process.env.NODE_ENV !== 'production',
-  hostname,
-  port,
+  dev,
+  ...(isNumericPort ? { hostname, port } : {}),
 });
 const handle = app.getRequestHandler();
 
@@ -18,8 +21,9 @@ app
   .then(() => {
     const server = createServer((request, response) => handle(request, response));
 
-    server.listen(port, hostname, () => {
-      console.log(`RAK Traffic is listening on http://${hostname}:${port}`);
+    const listenTarget = rawPort || port;
+    server.listen(listenTarget, () => {
+      console.log(`RAK Traffic is listening on ${listenTarget}`);
     });
 
     const shutdown = (signal) => {
