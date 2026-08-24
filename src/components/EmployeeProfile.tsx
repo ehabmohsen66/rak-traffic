@@ -62,9 +62,10 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
   };
 
   const filteredTasks = getFilteredTasks();
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const completedTasks = filteredTasks.filter((t) => t.status === 'Completed');
-  const delayedTasks = filteredTasks.filter((t) => t.status === 'Delayed');
+  const delayedTasks = filteredTasks.filter((t) => t.status !== 'Completed' && t.dueDate < todayStr);
   const openTasks = filteredTasks.filter((t) => t.status !== 'Completed');
 
   // On-time vs Late calculation

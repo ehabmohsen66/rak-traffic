@@ -336,7 +336,7 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({
 
             <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center min-w-28">
               <div className="text-2xl font-black text-amber-300">
-                {state.tasks.filter((t) => t.status === 'Delayed').length}
+                {state.tasks.filter((t) => t.status !== 'Completed' && t.dueDate < new Date().toISOString().split('T')[0]).length}
               </div>
               <div className="text-[11px] font-medium text-amber-200">Active Overdue</div>
             </div>

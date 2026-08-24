@@ -94,8 +94,11 @@ export class TrafficStore {
           const parsed = JSON.parse(saved);
           // API credentials must never survive in browser storage. Older
           // versions saved this field locally, so strip it during migration.
-          if (parsed.emailConfig) {
-            delete parsed.emailConfig.apiKey;
+          // Migrate any legacy 'Delayed' status tasks to 'In progress'
+          if (Array.isArray(parsed.tasks)) {
+            parsed.tasks = parsed.tasks.map((t: Task) =>
+              (t.status as string) === 'Delayed' ? { ...t, status: 'In progress' as TaskStatus } : t
+            );
           }
           this.state = {
             ...this.state,
@@ -138,47 +141,28 @@ export class TrafficStore {
     const todayStr = new Date().toISOString().split('T')[0];
     let stateChanged = false;
 
-    // 1. Scan for Overdue Tasks
-    const updatedTasks = this.state.tasks.map((task) => {
+    // 1. Scan for Overdue Tasks and generate automatic reminder notifications
+    this.state.tasks.forEach((task) => {
       if (task.status !== 'Completed' && task.dueDate < todayStr) {
-        if (task.status !== 'Delayed') {
-          stateChanged = true;
-          // Log audit
-          const newAudit: AuditLog = {
-            id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-            taskId: task.id,
-            taskTitle: task.title,
-            changedById: 'SYSTEM',
-            changedByName: 'System Scheduler',
-            field: 'status',
-            oldValue: task.status,
-            newValue: 'Delayed',
-            timestamp: new Date().toISOString(),
-            actionSummary: `Task automatically flagged as Delayed (due date: ${task.dueDate})`
-          };
-          this.state.auditLogs.unshift(newAudit);
+        const alreadyNotified = this.state.notifications.some(
+          (n) => n.taskId === task.id && n.type === 'overdue' && n.createdAt.startsWith(todayStr)
+        );
 
-          // Create Notification
+        if (!alreadyNotified) {
+          stateChanged = true;
           const newNotif: Notification = {
             id: `not-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
             userId: task.assignedToId,
             taskId: task.id,
             type: 'overdue',
-            message: `Task "${task.title}" is now OVERDUE!`,
+            message: `Task "${task.title}" is overdue (due: ${task.dueDate}). Please update status or complete.`,
             read: false,
             createdAt: new Date().toISOString()
           };
           this.state.notifications.unshift(newNotif);
-
-          return { ...task, status: 'Delayed' as TaskStatus, updatedAt: new Date().toISOString() };
         }
       }
-      return task;
     });
-
-    if (stateChanged) {
-      this.state.tasks = updatedTasks;
-    }
 
     // 2. Scan Recurrence Rules
     this.state.recurrenceRules.forEach((rule) => {
@@ -262,13 +246,10 @@ export class TrafficStore {
 
   // Task CRUD
   public addTask(taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isOverdue = taskData.dueDate < todayStr && taskData.status !== 'Completed';
-    
     const newTask: Task = {
       ...taskData,
       id: `tsk-${Date.now()}`,
-      status: isOverdue ? 'Delayed' : taskData.status,
+      status: taskData.status,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -333,8 +314,6 @@ export class TrafficStore {
   }) {
     const currentUser = this.state.users.find((u) => u.id === this.state.currentUserId);
     const createdTasks: Task[] = [];
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isOverdue = params.dueDate < todayStr;
 
     params.clientIds.forEach((cliId) => {
       params.employeeIds.forEach((empId) => {
@@ -346,7 +325,7 @@ export class TrafficStore {
           assignedToId: empId,
           assignedById: currentUser?.id || 'usr-1',
           priority: params.priority,
-          status: isOverdue ? 'Delayed' : 'Not started',
+          status: 'Not started',
           briefDate: params.briefDate,
           dueDate: params.dueDate,
           notes: params.notes,
@@ -410,12 +389,7 @@ export class TrafficStore {
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Compute updated task state
-    let finalStatus = updates.status !== undefined ? updates.status : oldTask.status;
-    const finalDueDate = updates.dueDate !== undefined ? updates.dueDate : oldTask.dueDate;
-
-    if (finalStatus !== 'Completed' && finalDueDate < todayStr) {
-      finalStatus = 'Delayed';
-    }
+    const finalStatus = updates.status !== undefined ? updates.status : oldTask.status;
 
     const updatedTask: Task = {
       ...oldTask,

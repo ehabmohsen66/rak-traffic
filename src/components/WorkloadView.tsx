@@ -23,9 +23,10 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
   const teamMembers = state.users.filter((u) => u.active);
 
   const getEmployeeStats = (userId: string) => {
+    const todayStr = new Date().toISOString().split('T')[0];
     const userTasks = state.tasks.filter((t) => t.assignedToId === userId);
     const openTasks = userTasks.filter((t) => t.status !== 'Completed');
-    const delayedTasks = userTasks.filter((t) => t.status === 'Delayed');
+    const delayedTasks = userTasks.filter((t) => t.status !== 'Completed' && t.dueDate < todayStr);
     const urgentHigh = openTasks.filter((t) => t.priority === 'Urgent' || t.priority === 'High');
 
     const totalOpen = openTasks.length;

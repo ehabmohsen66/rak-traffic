@@ -142,19 +142,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               {/* Tasks List inside Day Cell */}
               <div className="space-y-1 overflow-y-auto max-h-20 pr-0.5">
                 {dayTasks.map((t) => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const isOverdue = t.status !== 'Completed' && t.dueDate < todayStr;
+
                   let bg = 'bg-slate-50 text-slate-700 border-slate-200';
                   if (t.status === 'Completed') bg = 'bg-emerald-50 text-emerald-800 border-emerald-200';
-                  else if (t.status === 'Delayed') bg = 'bg-rose-50 text-rose-800 border-rose-200 font-bold';
+                  else if (isOverdue) bg = 'bg-rose-50 text-rose-800 border-rose-200 font-bold ring-1 ring-rose-200';
                   else if (t.status === 'In progress') bg = 'bg-amber-50 text-amber-800 border-amber-200';
+                  else if (t.status === 'Briefed') bg = 'bg-blue-50 text-blue-800 border-blue-200';
 
                   return (
                     <div
                       key={t.id}
                       onClick={() => onSelectTask(t)}
                       className={`text-[10px] font-semibold p-1 rounded-md border truncate cursor-pointer transition-transform hover:scale-[1.02] shadow-2xs ${bg}`}
-                      title={`${t.title} (${t.status})`}
+                      title={`${t.title} (${t.status}${isOverdue ? ' - Overdue' : ''})`}
                     >
-                      {t.title}
+                      {isOverdue && '⚠️ '}{t.title}
                     </div>
                   );
                 })}

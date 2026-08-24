@@ -145,14 +145,15 @@ export const TaskList: React.FC<TaskListProps> = ({
                 const assigneeName = store.getUserName(task.assignedToId);
                 const assignee = state.users.find((u) => u.id === task.assignedToId);
                 const managerName = store.getUserName(task.assignedById);
-                const isDelayed = task.status === 'Delayed';
+                const todayStr = new Date().toISOString().split('T')[0];
+                const isOverdue = task.status !== 'Completed' && task.dueDate < todayStr;
 
                 return (
                   <tr
                     key={task.id}
                     onClick={() => onSelectTask(task)}
                     className={`hover:bg-slate-50 transition-colors cursor-pointer ${
-                      isDelayed ? 'bg-rose-50/30 hover:bg-rose-50/60 border-l-4 border-l-rose-500' : ''
+                      isOverdue ? 'bg-rose-50/30 hover:bg-rose-50/60 border-l-4 border-l-rose-500' : ''
                     }`}
                   >
                     {/* Task Title */}
@@ -166,7 +167,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                     </td>
 
                     {/* Client */}
-                    <td className="py-3.5 px-4 font-semibold text-sky-700">
+                    <td className="py-3.5 px-4 font-medium text-slate-600">
                       <div className="flex items-center gap-1.5">
                         <Building className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                         <span className="truncate max-w-[140px]">{clientName}</span>
@@ -186,7 +187,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                     {/* Status with Quick Select */}
                     <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                       <select
-                        value={task.status}
+                        value={task.status === 'Delayed' ? 'In progress' : task.status}
                         onChange={(e) => store.updateTask(task.id, { status: e.target.value as TaskStatus })}
                         className="bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-xs font-semibold px-2 py-1 text-slate-700 focus:outline-none focus:border-indigo-500 shadow-xs cursor-pointer transition-colors"
                       >
@@ -194,7 +195,6 @@ export const TaskList: React.FC<TaskListProps> = ({
                         <option value="Briefed">{t.statusBriefed}</option>
                         <option value="In progress">{t.statusInProgress}</option>
                         <option value="Completed">{t.statusCompleted}</option>
-                        <option value="Delayed">{t.statusDelayed}</option>
                       </select>
                     </td>
 
@@ -205,8 +205,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                     <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{task.briefDate}</td>
 
                     {/* Due Date */}
-                    <td className={`py-3.5 px-4 font-mono text-[11px] font-bold ${isDelayed ? 'text-rose-600' : 'text-slate-700'}`}>
-                      {task.dueDate}
+                    <td className={`py-3.5 px-4 font-mono text-[11px] font-bold ${isOverdue ? 'text-rose-600' : 'text-slate-700'}`}>
+                      {isOverdue ? `⚠️ ${task.dueDate}` : task.dueDate}
                     </td>
 
                     {/* Notes Snippet */}

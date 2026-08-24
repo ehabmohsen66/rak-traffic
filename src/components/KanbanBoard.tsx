@@ -58,14 +58,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       badgeBg: 'bg-amber-100/80 text-amber-800',
     },
     {
-      id: 'Delayed',
-      label: t.statusDelayed,
-      color: 'text-rose-700 font-bold',
-      border: 'border-rose-300/80',
-      bg: 'bg-rose-50/50',
-      badgeBg: 'bg-rose-100 text-rose-700 border border-rose-200',
-    },
-    {
       id: 'Completed',
       label: t.statusCompleted,
       color: 'text-emerald-700',
@@ -227,7 +219,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       {/* Quick Status Shift Bar */}
                       <div className="pt-1.5 flex items-center justify-end gap-1">
                         <select
-                          value={task.status}
+                          value={task.status === 'Delayed' ? 'In progress' : task.status}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => {
                             e.stopPropagation();
@@ -239,7 +231,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           <option value="Briefed">{t.statusBriefed}</option>
                           <option value="In progress">{t.statusInProgress}</option>
                           <option value="Completed">{t.statusCompleted}</option>
-                          <option value="Delayed">{t.statusDelayed}</option>
                         </select>
                       </div>
                     </div>

@@ -80,8 +80,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const currentUser = state.users.find((u) => u.id === state.currentUserId) || state.users[0];
   const unreadNotifications = state.notifications.filter((n) => !n.read && n.userId === state.currentUserId).length;
   
-  // User-specific delayed tasks (or role-aware)
-  const myDelayedTasksCount = state.tasks.filter((t) => t.assignedToId === state.currentUserId && t.status === 'Delayed').length;
+  // User-specific delayed tasks (automated calculation)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const myDelayedTasksCount = state.tasks.filter((t) => t.assignedToId === state.currentUserId && t.status !== 'Completed' && t.dueDate < todayStr).length;
   const delayedTasksCount = myDelayedTasksCount;
 
   const currentNews = lebaneseNewsItems[newsIndex];

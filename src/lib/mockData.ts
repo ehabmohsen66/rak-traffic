@@ -395,7 +395,7 @@ export const INITIAL_TASKS: Task[] = [
     assignedToId: 'usr-khaled',
     assignedById: 'usr-majd',
     priority: 'Normal',
-    status: 'Delayed',
+    status: 'In progress',
     briefDate: '2026-08-05',
     dueDate: '2026-08-13',
     notes: 'Update Clinic Location, Testimonials, and Products highlight covers.'
@@ -432,7 +432,7 @@ export const INITIAL_TASKS: Task[] = [
     assignedToId: 'usr-khaled',
     assignedById: 'usr-farah',
     priority: 'Normal',
-    status: 'Delayed',
+    status: 'In progress',
     briefDate: '2026-08-05',
     dueDate: '2026-08-13',
     notes: 'Review banner visuals, featured articles, and network engagement.'

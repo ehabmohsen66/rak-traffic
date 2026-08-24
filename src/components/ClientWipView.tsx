@@ -83,9 +83,10 @@ export const ClientWipView: React.FC<ClientWipViewProps> = ({
       {/* Client Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {state.clients.map((client) => {
+          const todayStr = new Date().toISOString().split('T')[0];
           const clientTasks = state.tasks.filter((t) => t.clientId === client.id);
           const activeTasks = clientTasks.filter((t) => t.status !== 'Completed');
-          const delayedTasks = clientTasks.filter((t) => t.status === 'Delayed');
+          const delayedTasks = clientTasks.filter((t) => t.status !== 'Completed' && t.dueDate < todayStr);
           const owners = state.users.filter((u) => client.accountOwnerIds.includes(u.id));
 
           return (

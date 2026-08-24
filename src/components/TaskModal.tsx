@@ -206,6 +206,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
         )}
 
+        {/* Automated Overdue Notice */}
+        {task && status !== 'Completed' && dueDate < new Date().toISOString().split('T')[0] && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              <span><strong>Automated Delay Detected:</strong> This task is past its deadline ({dueDate}). Please update the progress or complete it.</span>
+            </div>
+          </div>
+        )}
+
         {/* Task Form */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
@@ -252,7 +262,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <div>
               <label className="block text-slate-700 font-semibold mb-1">{t.colStatus}</label>
               <select
-                value={status}
+                value={status === 'Delayed' ? 'In progress' : status}
                 onChange={(e) => setStatus(e.target.value as TaskStatus)}
                 className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               >
@@ -260,7 +270,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 <option value="Briefed">{t.statusBriefed}</option>
                 <option value="In progress">{t.statusInProgress}</option>
                 <option value="Completed">{t.statusCompleted}</option>
-                <option value="Delayed">{t.statusDelayed}</option>
               </select>
             </div>
 

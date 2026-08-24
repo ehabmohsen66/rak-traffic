@@ -195,20 +195,25 @@ export default function DashboardClient() {
       if (!matchTitle && !matchNotes && !matchClient && !matchAssignee) return false;
     }
 
-    if (selectedClientId !== 'all' && task.clientId !== selectedClientId) return false;
-    if (!isMyTasksMode && selectedAssigneeId !== 'all' && task.assignedToId !== selectedAssigneeId) return false;
-    if (selectedStatus !== 'all' && task.status !== selectedStatus) return false;
+    if (selectedStatus !== 'all') {
+      if (selectedStatus === 'overdue' || selectedStatus === 'Delayed') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (task.status === 'Completed' || task.dueDate >= todayStr) return false;
+      } else if (task.status !== selectedStatus) {
+        return false;
+      }
+    }
     if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
 
     return true;
   });
 
   // User personal metrics
+  const todayStr = new Date().toISOString().split('T')[0];
   const myTasks = state.tasks.filter((t) => t.assignedToId === state.currentUserId);
   const myOpenTasks = myTasks.filter((t) => t.status !== 'Completed');
-  const todayStr = new Date().toISOString().split('T')[0];
   const myDueToday = myTasks.filter((t) => t.dueDate === todayStr && t.status !== 'Completed');
-  const myDelayed = myTasks.filter((t) => t.status === 'Delayed');
+  const myDelayed = myTasks.filter((t) => t.dueDate < todayStr && t.status !== 'Completed');
   const myCompleted = myTasks.filter((t) => t.status === 'Completed');
 
   const clearFilters = () => {
@@ -435,7 +440,7 @@ export default function DashboardClient() {
                     <option value="Briefed">{t.statusBriefed}</option>
                     <option value="In progress">{t.statusInProgress}</option>
                     <option value="Completed">{t.statusCompleted}</option>
-                    <option value="Delayed">{t.statusDelayed}</option>
+                    <option value="overdue">⚠️ {t.statusDelayed} (Auto Detected)</option>
                   </select>
 
                   {/* Priority Filter */}

@@ -68,11 +68,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ state, activeTab, setActiveTab
   const t = translations[state.language];
 
   const currentUser = state.users.find((u) => u.id === state.currentUserId) || state.users[0];
+  const todayStr = new Date().toISOString().split('T')[0];
   const myTasksCount = state.tasks.filter((t) => t.assignedToId === state.currentUserId && t.status !== 'Completed').length;
-  const myDelayedCount = state.tasks.filter((t) => t.assignedToId === state.currentUserId && t.status === 'Delayed').length;
+  const myDelayedCount = state.tasks.filter((t) => t.assignedToId === state.currentUserId && t.status !== 'Completed' && t.dueDate < todayStr).length;
 
   const totalTasks = state.tasks.length;
-  const delayedTasks = state.tasks.filter((t) => t.status === 'Delayed').length;
+  const delayedTasks = state.tasks.filter((t) => t.status !== 'Completed' && t.dueDate < todayStr).length;
   const activeRecurrence = state.recurrenceRules.filter((r) => r.active).length;
   const totalClients = state.clients.length;
 
