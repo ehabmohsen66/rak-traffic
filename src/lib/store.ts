@@ -660,7 +660,7 @@ export class TrafficStore {
         assignedToId: assignee.id,
         assignedById: currentUser?.id || 'usr-1',
         priority,
-        status: isOverdue ? 'Delayed' : status,
+        status,
         briefDate,
         dueDate,
         completedDate: status === 'Completed' ? dueDate : null,
