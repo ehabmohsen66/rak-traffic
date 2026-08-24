@@ -1,4 +1,7 @@
 ---
 deployment:
   tasks:
-    - /bin/bash scripts/cpanel-deploy.sh
+    - export DEPLOYPATH=/home/rak4dev/public_html/
+    - if [ -d "$DEPLOYPATH" ]; then /bin/cp -a . $DEPLOYPATH; fi
+    - export DEPLOYPATH2=/home/rak4dev/rak-traffic/
+    - if [ -d "$DEPLOYPATH2" ]; then /bin/cp -a . $DEPLOYPATH2; fi
