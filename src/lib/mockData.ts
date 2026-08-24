@@ -14,7 +14,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-krystel',
     name: 'Krystel Saleh',
-    email: 'krystel.s@rak4creative.com',
+    email: 'krystel.saleh@gmail.com',
     role: 'manager',
     department: 'Creative Direction',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
@@ -24,7 +24,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-johnny',
     name: 'Johnny Al Sandroussy',
-    email: 'johnny.s@rak4creative.com',
+    email: 'j.sandroussy@rak4digital.com',
     role: 'manager',
     department: 'Account Management',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
@@ -34,7 +34,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-alex',
     name: 'Alex Yanni',
-    email: 'alex.y@rak4creative.com',
+    email: 'a.yanni@rak4digital.com',
     role: 'employee',
     department: 'Account Executive',
     avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
@@ -54,7 +54,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-khaled',
     name: 'Khaled Soueid',
-    email: 'khaled.s@rak4creative.com',
+    email: 'k.soueid@rak4digital.com',
     role: 'employee',
     department: 'Social Media Specialist',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
@@ -64,7 +64,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-tatiana',
     name: 'Tatiana Tarabay',
-    email: 'tatiana.t@rak4creative.com',
+    email: 't.tarabay@rak4digital.com',
     role: 'employee',
     department: 'Lead Graphic Designer',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -74,7 +74,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-myriam',
     name: 'Myriam Ghosn',
-    email: 'myriam.g@rak4creative.com',
+    email: 'm.ghosn@rak4digital.com',
     role: 'employee',
     department: 'Graphic Designer',
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
@@ -84,7 +84,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-hoda',
     name: 'Hoda Azizi',
-    email: 'hoda.a@rak4creative.com',
+    email: 'h.azizi@rak4digital.com',
     role: 'employee',
     department: 'Senior Graphic Designer',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
@@ -94,7 +94,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-selim',
     name: 'Selim Chahwan',
-    email: 'selim.c@rak4creative.com',
+    email: 'selim.c@rak4digital.com',
     role: 'employee',
     department: 'Motion Graphics & AI',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
@@ -104,7 +104,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-tarek',
     name: 'Tarek Abou-Moghelbey',
-    email: 'tarek.m@rak4creative.com',
+    email: 'tarek.am@rak4digital.com',
     role: 'employee',
     department: 'Creative Media Producer',
     avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
@@ -114,7 +114,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-elio',
     name: 'Elio Chammas',
-    email: 'elio.c@rak4creative.com',
+    email: 'e.chammas@rak4digital.com',
     role: 'employee',
     department: 'Narrative Strategist',
     avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
@@ -124,10 +124,20 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-majd',
     name: 'Majd Yassine',
-    email: 'majd.y@rak4creative.com',
+    email: 'm.yassine@rak4digital.com',
     role: 'employee',
     department: 'Senior Copywriter',
     avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
+    active: true,
+    weeklyOffDays: [5, 6]
+  },
+  {
+    id: 'usr-ychami',
+    name: 'Youssef Chami',
+    email: 'y.chami@rak4digital.com',
+    role: 'employee',
+    department: 'Account & Creative Executive',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
     active: true,
     weeklyOffDays: [5, 6]
   },

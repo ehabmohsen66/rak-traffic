@@ -1,7 +1,9 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/rak4dev/public_html/
-    - if [ -d "$DEPLOYPATH" ]; then /bin/cp -a . $DEPLOYPATH; fi
-    - export DEPLOYPATH2=/home/rak4dev/rak-traffic/
-    - if [ -d "$DEPLOYPATH2" ]; then /bin/cp -a . $DEPLOYPATH2; fi
+    - export DEPLOYPATH=/home/rak4dev/public_html
+    - if [ -d "$DEPLOYPATH" ]; then /bin/cp -a . $DEPLOYPATH/ && /bin/cp -a .next $DEPLOYPATH/ && /bin/mkdir -p $DEPLOYPATH/tmp && /bin/touch $DEPLOYPATH/tmp/restart.txt; fi
+    - export DEPLOYPATH2=/home/rak4dev/rak-traffic
+    - if [ -d "$DEPLOYPATH2" ]; then /bin/cp -a . $DEPLOYPATH2/ && /bin/cp -a .next $DEPLOYPATH2/ && /bin/mkdir -p $DEPLOYPATH2/tmp && /bin/touch $DEPLOYPATH2/tmp/restart.txt; fi
+    - /bin/mkdir -p /home/rak4dev/repositories/rak-traffic/tmp && /bin/touch /home/rak4dev/repositories/rak-traffic/tmp/restart.txt
+

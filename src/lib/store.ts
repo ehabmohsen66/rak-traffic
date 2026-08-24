@@ -100,9 +100,26 @@ export class TrafficStore {
               (t.status as string) === 'Delayed' ? { ...t, status: 'In progress' as TaskStatus } : t
             );
           }
+
+          // Sync official colleague emails and new users
+          let mergedUsers = INITIAL_USERS;
+          if (Array.isArray(parsed.users)) {
+            mergedUsers = INITIAL_USERS.map((initUser) => {
+              const savedUser = parsed.users.find((u: User) => u.id === initUser.id);
+              return savedUser ? { ...savedUser, email: initUser.email, name: initUser.name } : initUser;
+            });
+            // Also keep any custom created users
+            parsed.users.forEach((u: User) => {
+              if (!mergedUsers.some((m) => m.id === u.id)) {
+                mergedUsers.push(u);
+              }
+            });
+          }
+
           this.state = {
             ...this.state,
             ...parsed,
+            users: mergedUsers,
             emailLogs: parsed.emailLogs || INITIAL_EMAIL_LOGS,
             emailConfig: { ...INITIAL_EMAIL_CONFIG, ...(parsed.emailConfig || {}) }
           };
