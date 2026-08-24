@@ -1,0 +1,11 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/email/config/route": "/api/email/config",
+  "/api/email/daily-cron/route": "/api/email/daily-cron",
+  "/api/email/send/route": "/api/email/send",
+  "/api/email/test/route": "/api/email/test",
+  "/api/health/route": "/api/health",
+  "/icon.svg/route": "/icon.svg",
+  "/page": "/"
+}

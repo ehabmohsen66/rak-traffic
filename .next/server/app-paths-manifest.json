@@ -1,0 +1,11 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/email/config/route": "app/api/email/config/route.js",
+  "/api/email/daily-cron/route": "app/api/email/daily-cron/route.js",
+  "/api/email/send/route": "app/api/email/send/route.js",
+  "/api/email/test/route": "app/api/email/test/route.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/page": "app/page.js"
+}

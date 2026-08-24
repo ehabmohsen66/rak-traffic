@@ -1,0 +1,3 @@
+{
+  "/api/email/daily-cron/route": "app/api/email/daily-cron/route.js"
+}

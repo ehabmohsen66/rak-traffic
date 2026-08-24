@@ -4,8 +4,8 @@
 .pnp.js
 .yarn/install-state.gz
 
-# Next.js build output
-/.next/
+# Next.js build output (tracked for zero-terminal hosting, cache ignored)
+/.next/cache/
 /out/
 
 # Production build artifacts

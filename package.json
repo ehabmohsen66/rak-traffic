@@ -9,8 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "node app.js",
-    "lint": "eslint .",
-    "postinstall": "next build"
+    "lint": "eslint ."
   },
   "dependencies": {
     "clsx": "^2.1.1",
