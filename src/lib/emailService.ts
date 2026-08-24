@@ -114,7 +114,7 @@ export async function sendEmail(
       if (allowedDomains.length === 0) {
         throw new Error('Live email delivery is disabled until EMAIL_ALLOWED_DOMAINS is configured on the server.');
       }
-      if (!recipientDomain || !allowedDomains.includes(recipientDomain)) {
+      if (!recipientDomain || (!allowedDomains.includes('*') && !allowedDomains.includes(recipientDomain))) {
         throw new Error(`Email delivery to @${recipientDomain || 'unknown'} is not allowed by the server configuration.`);
       }
     }
