@@ -146,8 +146,8 @@ export const translations: Record<Language, Translations> = {
     currentUser: "Active User",
     switchRole: "Switch View As",
     
-    newTask: "+ New Task",
-    bulkTask: "⚡ Bulk Task",
+    newTask: "New Task",
+    bulkTask: "Bulk Task",
     searchPlaceholder: "Search tasks, briefs, clients, or assignees...",
     filterByClient: "Client",
     filterByEmployee: "Assignee",
@@ -206,7 +206,7 @@ export const translations: Record<Language, Translations> = {
     monthly: "Monthly",
     nextRunDate: "Next Run Date",
     activeRules: "Active Recurrence Rules",
-    addRule: "+ Add Recurring Rule",
+    addRule: "Add Recurring Rule",
 
     employeePerformance: "Employee Performance & Audit History",
     selectEmployee: "Select Employee",
@@ -226,7 +226,7 @@ export const translations: Record<Language, Translations> = {
     clientTier: "Account Size / Tier",
     accountOwner: "Account Owners",
     activeTasks: "Active Tasks",
-    addClient: "+ Add Client",
+    addClient: "Add Client",
 
     migrationTitle: "Excel & CSV Data Migration Engine",
     migrationSub: "Import existing Excel Traffic Sheets and Client WIP files directly into the system.",
@@ -258,8 +258,8 @@ export const translations: Record<Language, Translations> = {
     currentUser: "المستخدم الحالي",
     switchRole: "تبديل صلاحية العرض",
     
-    newTask: "+ مهمة جديدة",
-    bulkTask: "⚡ تعيين جماعي",
+    newTask: "مهمة جديدة",
+    bulkTask: "تعيين جماعي",
     searchPlaceholder: "ابحث عن مهمة، موجز، عميل، أو موظف...",
     filterByClient: "العميل",
     filterByEmployee: "المسؤول",
@@ -318,7 +318,7 @@ export const translations: Record<Language, Translations> = {
     monthly: "شهري",
     nextRunDate: "تاريخ التشغيل القادم",
     activeRules: "قواعد التكرار النشطة",
-    addRule: "+ إضافة قاعدة تكرار",
+    addRule: "إضافة قاعدة تكرار",
 
     employeePerformance: "أداء الموظف وسجل الأنشطة التاريخي",
     selectEmployee: "اختر الموظف",
@@ -338,7 +338,7 @@ export const translations: Record<Language, Translations> = {
     clientTier: "حجم الحساب / التصنيف",
     accountOwner: "مدير الحساب Responsibles",
     activeTasks: "المهام النشطة",
-    addClient: "+ إضافة عميل",
+    addClient: "إضافة عميل",
 
     migrationTitle: "محرك استيراد وتصدير بيانات الإكسيل",
     migrationSub: "استورد شيتات الإكسيل القديمة (Traffic Sheet & WIP Sheet) بضغطة زرواحدة.",
