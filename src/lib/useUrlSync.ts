@@ -102,8 +102,8 @@ export function updateUrl(state: UrlParamsState, replace: boolean = false) {
     params.set('user', state.user);
   }
 
-  // View mode (default is kanban)
-  if (state.view && state.view !== 'kanban') {
+  // View mode (default is list)
+  if (state.view && state.view !== 'list') {
     params.set('view', state.view);
   }
 

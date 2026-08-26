@@ -54,9 +54,9 @@ export default function DashboardClient() {
 
   const currentUser = state.users.find((u) => u.id === state.currentUserId) || state.users[0];
 
-  // Navigation & View Mode: Default to 'tasks' (All Agency Tasks)
+  // Navigation & View Mode: Default to 'tasks' (All Agency Tasks) and 'list' (Table List)
   const [activeTab, setActiveTab] = useState<MainTab>('tasks');
-  const [taskViewMode, setTaskViewMode] = useState<'kanban' | 'list' | 'calendar'>('kanban');
+  const [taskViewMode, setTaskViewMode] = useState<'kanban' | 'list' | 'calendar'>('list');
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -361,19 +361,6 @@ export default function DashboardClient() {
                   {/* View Mode Toggle */}
                   <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
                     <button
-                      onClick={() => setTaskViewMode('kanban')}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                        taskViewMode === 'kanban' 
-                          ? 'bg-white text-indigo-700 shadow-xs font-bold' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title={t.viewKanban}
-                    >
-                      <LayoutGrid className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">{t.viewKanban}</span>
-                    </button>
-
-                    <button
                       onClick={() => setTaskViewMode('list')}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                         taskViewMode === 'list' 
@@ -384,6 +371,19 @@ export default function DashboardClient() {
                     >
                       <List className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t.viewList}</span>
+                    </button>
+
+                    <button
+                      onClick={() => setTaskViewMode('kanban')}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        taskViewMode === 'kanban' 
+                          ? 'bg-white text-indigo-700 shadow-xs font-bold' 
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title={t.viewKanban}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t.viewKanban}</span>
                     </button>
 
                     <button
