@@ -54,8 +54,9 @@ export interface Translations {
   
   // Priorities
   priorityNormal: string;
-  priorityUrgent: string;
   priorityHigh: string;
+  priorityUrgent: string;
+  prioritySuperUrgent: string;
   
   // Table Columns
   colTaskTitle: string;
@@ -175,8 +176,9 @@ export const translations: Record<Language, Translations> = {
     statusDelayed: "Delayed / Overdue",
     
     priorityNormal: "Normal",
-    priorityUrgent: "Urgent",
     priorityHigh: "High Priority",
+    priorityUrgent: "Urgent",
+    prioritySuperUrgent: "🔥 Super Urgent",
     
     colTaskTitle: "Task / Brief",
     colClient: "Client",
@@ -287,8 +289,9 @@ export const translations: Record<Language, Translations> = {
     statusDelayed: "متأخرة / متجاوزة",
     
     priorityNormal: "عادي",
+    priorityHigh: "أولوية عالية",
     priorityUrgent: "عاجل",
-    priorityHigh: "أولوية قصوى",
+    prioritySuperUrgent: "🔥 عاجل جداً (Super Urgent)",
     
     colTaskTitle: "المهمة / الموجز الإبداعي",
     colClient: "العميل",

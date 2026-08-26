@@ -64,7 +64,7 @@ export interface Client {
   logo?: string;
 }
 
-export type Priority = 'Normal' | 'Urgent' | 'High';
+export type Priority = 'Normal' | 'High' | 'Urgent' | 'Super Urgent';
 
 export type TaskStatus = 'Not started' | 'Briefed' | 'In progress' | 'Completed' | 'Delayed';
 

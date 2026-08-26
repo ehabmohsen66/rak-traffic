@@ -69,6 +69,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const getPriorityBadge = (priority: Priority) => {
     switch (priority) {
+      case 'Super Urgent':
+        return (
+          <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 animate-pulse">
+            🔥 {t.prioritySuperUrgent}
+          </span>
+        );
       case 'High':
         return <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-md">{t.priorityHigh}</span>;
       case 'Urgent':
@@ -122,7 +128,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   return (
     <div className="flex gap-4 w-full overflow-x-auto pb-6 pt-1 items-start">
       {columns.map((col) => {
-        const columnTasks = tasks.filter((t) => t.status === col.id);
+        const columnTasks = tasks
+          .filter((t) => t.status === col.id)
+          .sort((a, b) => {
+            const isSuperA = a.priority === 'Super Urgent';
+            const isSuperB = b.priority === 'Super Urgent';
+            if (isSuperA !== isSuperB) return isSuperA ? -1 : 1;
+            return 0;
+          });
         const isDelayedCol = col.id === 'Delayed';
 
         return (
@@ -155,13 +168,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   const assigneeName = store.getUserName(task.assignedToId);
                   const assignee = state.users.find((u) => u.id === task.assignedToId);
                   const commentCount = state.comments[task.id]?.length || 0;
+                  const isSuperUrgent = task.priority === 'Super Urgent' && task.status !== 'Completed';
 
                   return (
                     <div
                       key={task.id}
                       onClick={() => onSelectTask(task)}
                       className={`bg-white rounded-xl p-3.5 space-y-2.5 cursor-pointer transition-all duration-150 relative group border shadow-xs hover:shadow-md hover:border-indigo-400 ${
-                        task.status === 'Delayed' ? 'border-rose-300 hover:border-rose-400 ring-1 ring-rose-100' : 'border-slate-200'
+                        isSuperUrgent
+                          ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50/20'
+                          : task.status === 'Delayed'
+                          ? 'border-rose-300 hover:border-rose-400 ring-1 ring-rose-100'
+                          : 'border-slate-200'
                       }`}
                     >
                       {/* Top Bar: Client & Priority */}

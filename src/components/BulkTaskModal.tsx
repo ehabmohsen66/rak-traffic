@@ -181,8 +181,9 @@ export const BulkTaskModal: React.FC<BulkTaskModalProps> = ({ store, state, onCl
                 className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="Normal">{t.priorityNormal}</option>
-                <option value="Urgent">{t.priorityUrgent}</option>
                 <option value="High">{t.priorityHigh}</option>
+                <option value="Urgent">{t.priorityUrgent}</option>
+                <option value="Super Urgent">{t.prioritySuperUrgent}</option>
               </select>
             </div>
 

@@ -50,7 +50,15 @@ export const TaskList: React.FC<TaskListProps> = ({
       return isCompletedA ? 1 : -1;
     }
 
-    // 2. If user specifically clicked a column header, sort within sections
+    // 2. Pin Active "Super Urgent" tasks at the absolute top of the list!
+    const isSuperUrgentA = !isCompletedA && a.priority === 'Super Urgent';
+    const isSuperUrgentB = !isCompletedB && b.priority === 'Super Urgent';
+
+    if (isSuperUrgentA !== isSuperUrgentB) {
+      return isSuperUrgentA ? -1 : 1;
+    }
+
+    // 3. If user specifically clicked a column header, sort within sections
     if (sortField) {
       const valA = a[sortField] || '';
       const valB = b[sortField] || '';
@@ -58,7 +66,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       if (valA > valB) return sortAsc ? 1 : -1;
     }
 
-    // 3. Default ordering: Newest tasks appear at the top
+    // 4. Default ordering: Newest tasks appear at the top
     const dateA = a.createdAt || a.id || '';
     const dateB = b.createdAt || b.id || '';
     if (dateA !== dateB) {
@@ -90,6 +98,12 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const getPriorityBadge = (priority: Priority) => {
     switch (priority) {
+      case 'Super Urgent':
+        return (
+          <span className="bg-gradient-to-r from-rose-600 to-red-600 text-white border border-red-700 text-xs font-black px-2.5 py-0.5 rounded-md shadow-xs flex items-center gap-1 animate-pulse">
+            🔥 {t.prioritySuperUrgent}
+          </span>
+        );
       case 'High':
         return <span className="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-0.5 rounded-md">{t.priorityHigh}</span>;
       case 'Urgent':
@@ -167,21 +181,28 @@ export const TaskList: React.FC<TaskListProps> = ({
                 const todayStr = new Date().toISOString().split('T')[0];
                 const isOverdue = task.status !== 'Completed' && task.dueDate < todayStr;
                 const isCompleted = task.status === 'Completed';
+                const isSuperUrgent = !isCompleted && task.priority === 'Super Urgent';
 
                 return (
                   <tr
                     key={task.id}
                     onClick={() => onSelectTask(task)}
                     className={`hover:bg-slate-50 transition-colors cursor-pointer ${
+                      isSuperUrgent ? 'bg-rose-50/80 hover:bg-rose-100/70 border-l-4 border-l-rose-600 shadow-2xs font-semibold' :
                       isOverdue ? 'bg-rose-50/30 hover:bg-rose-50/60 border-l-4 border-l-rose-500' :
                       isCompleted ? 'bg-slate-50/50 opacity-80 text-slate-500' : ''
                     }`}
                   >
                     {/* Task Title */}
                     <td className="py-3.5 px-4 font-bold text-slate-800 max-w-[240px]">
-                      <div className={`truncate transition-colors ${isCompleted ? 'text-slate-500 font-medium' : 'text-slate-900 group-hover:text-indigo-600'}`}>
-                        {isCompleted && <span className="text-emerald-600 font-bold mr-1.5">✓</span>}
-                        {task.title}
+                      <div className={`truncate transition-colors flex items-center gap-1.5 ${
+                        isCompleted ? 'text-slate-500 font-medium' :
+                        isSuperUrgent ? 'text-rose-950 font-black' :
+                        'text-slate-900 group-hover:text-indigo-600'
+                      }`}>
+                        {isCompleted && <span className="text-emerald-600 font-bold">✓</span>}
+                        {isSuperUrgent && <span className="text-rose-600 text-xs shrink-0 animate-pulse">🔥</span>}
+                        <span className="truncate">{task.title}</span>
                       </div>
                       <div className="text-[10px] text-slate-400 font-normal mt-0.5">
                         Manager: {managerName}

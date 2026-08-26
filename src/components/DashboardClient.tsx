@@ -451,8 +451,9 @@ export default function DashboardClient() {
                   >
                     <option value="all">{t.allPriorities}</option>
                     <option value="Normal">{t.priorityNormal}</option>
-                    <option value="Urgent">{t.priorityUrgent}</option>
                     <option value="High">{t.priorityHigh}</option>
+                    <option value="Urgent">{t.priorityUrgent}</option>
+                    <option value="Super Urgent">{t.prioritySuperUrgent}</option>
                   </select>
 
                   {hasActiveFilters && (
