@@ -29,7 +29,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 }) => {
   const t = translations[state.language];
 
-  const [sortField, setSortField] = useState<keyof Task>('dueDate');
+  const [sortField, setSortField] = useState<keyof Task | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
 
   const handleSort = (field: keyof Task) => {
@@ -42,10 +42,29 @@ export const TaskList: React.FC<TaskListProps> = ({
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
-    const valA = a[sortField] || '';
-    const valB = b[sortField] || '';
-    if (valA < valB) return sortAsc ? -1 : 1;
-    if (valA > valB) return sortAsc ? 1 : -1;
+    // 1. Separate Active vs Completed: Completed tasks always move to the bottom
+    const isCompletedA = a.status === 'Completed';
+    const isCompletedB = b.status === 'Completed';
+
+    if (isCompletedA !== isCompletedB) {
+      return isCompletedA ? 1 : -1;
+    }
+
+    // 2. If user specifically clicked a column header, sort within sections
+    if (sortField) {
+      const valA = a[sortField] || '';
+      const valB = b[sortField] || '';
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+    }
+
+    // 3. Default ordering: Newest tasks appear at the top
+    const dateA = a.createdAt || a.id || '';
+    const dateB = b.createdAt || b.id || '';
+    if (dateA !== dateB) {
+      return dateA < dateB ? 1 : -1;
+    }
+
     return 0;
   });
 
@@ -147,18 +166,21 @@ export const TaskList: React.FC<TaskListProps> = ({
                 const managerName = store.getUserName(task.assignedById);
                 const todayStr = new Date().toISOString().split('T')[0];
                 const isOverdue = task.status !== 'Completed' && task.dueDate < todayStr;
+                const isCompleted = task.status === 'Completed';
 
                 return (
                   <tr
                     key={task.id}
                     onClick={() => onSelectTask(task)}
                     className={`hover:bg-slate-50 transition-colors cursor-pointer ${
-                      isOverdue ? 'bg-rose-50/30 hover:bg-rose-50/60 border-l-4 border-l-rose-500' : ''
+                      isOverdue ? 'bg-rose-50/30 hover:bg-rose-50/60 border-l-4 border-l-rose-500' :
+                      isCompleted ? 'bg-slate-50/50 opacity-80 text-slate-500' : ''
                     }`}
                   >
                     {/* Task Title */}
                     <td className="py-3.5 px-4 font-bold text-slate-800 max-w-[240px]">
-                      <div className="truncate group-hover:text-indigo-600 transition-colors">
+                      <div className={`truncate transition-colors ${isCompleted ? 'text-slate-500 font-medium' : 'text-slate-900 group-hover:text-indigo-600'}`}>
+                        {isCompleted && <span className="text-emerald-600 font-bold mr-1.5">✓</span>}
                         {task.title}
                       </div>
                       <div className="text-[10px] text-slate-400 font-normal mt-0.5">
