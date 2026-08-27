@@ -38,6 +38,9 @@ export default function DashboardClient() {
   const [celebratingTask, setCelebratingTask] = useState<Task | null>(null);
 
   useEffect(() => {
+    // Sync state on client-side mount to pick up values from localStorage and avoid hydration mismatch
+    setState({ ...store.getState() });
+
     const unsubscribe = store.subscribe(() => {
       setState({ ...store.getState() });
     });
@@ -584,9 +587,27 @@ export default function DashboardClient() {
                                     const file = e.target.files?.[0];
                                     if (file) {
                                       const reader = new FileReader();
-                                      reader.onload = (event) => {
-                                        if (event.target?.result) {
-                                          setEditAvatar(event.target.result as string);
+                                      reader.onload = () => {
+                                        if (reader.result) {
+                                          const img = new Image();
+                                          img.onload = () => {
+                                            const canvas = document.createElement('canvas');
+                                            const size = 120; // 120x120 is plenty for avatar circles
+                                            canvas.width = size;
+                                            canvas.height = size;
+                                            const ctx = canvas.getContext('2d');
+                                            if (ctx) {
+                                              // Draw center cropped square
+                                              const minDim = Math.min(img.width, img.height);
+                                              const sx = (img.width - minDim) / 2;
+                                              const sy = (img.height - minDim) / 2;
+                                              ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+                                              setEditAvatar(canvas.toDataURL('image/jpeg', 0.8));
+                                            } else {
+                                              setEditAvatar(reader.result as string);
+                                            }
+                                          };
+                                          img.src = reader.result as string;
                                         }
                                       };
                                       reader.readAsDataURL(file);

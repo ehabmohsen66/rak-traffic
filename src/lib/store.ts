@@ -154,7 +154,11 @@ export class TrafficStore {
 
   private notify() {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.state));
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.state));
+      } catch (e) {
+        console.error('Failed to save state to localStorage:', e);
+      }
     }
     this.listeners.forEach((l) => l());
   }

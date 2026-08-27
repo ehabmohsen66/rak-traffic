@@ -101,6 +101,7 @@ export interface Translations {
   lastMonth: string;
   last30Days: string;
   customRange: string;
+  specificDate: string;
   completedTasks: string;
   onTimeRate: string;
   avgTurnaround: string;
@@ -219,6 +220,7 @@ export const translations: Record<Language, Translations> = {
     lastMonth: "Last Month",
     last30Days: "Last 30 Days",
     customRange: "Custom Range",
+    specificDate: "Specific Date",
     completedTasks: "Tasks Completed",
     onTimeRate: "On-Time Delivery Rate",
     avgTurnaround: "Avg Turnaround",
@@ -333,6 +335,7 @@ export const translations: Record<Language, Translations> = {
     lastMonth: "الشهر الماضي",
     last30Days: "آخر 30 يوم",
     customRange: "فترة مخصصة",
+    specificDate: "تاريخ محدد",
     completedTasks: "المهام المكتملة",
     onTimeRate: "نسبة التسليم في الموعد",
     avgTurnaround: "متوسط وقت التنفيذ",

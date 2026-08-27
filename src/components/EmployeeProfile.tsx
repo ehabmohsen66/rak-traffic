@@ -31,12 +31,15 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
 }) => {
   const t = translations[state.language];
 
-  type Timeframe = 'thisWeek' | 'lastMonth' | 'last30Days' | 'all';
+  type Timeframe = 'thisWeek' | 'lastMonth' | 'last30Days' | 'all' | 'specificDate';
   const [localActiveUserId, setLocalActiveUserId] = useState(
     state.users.find((u) => u.role === 'employee')?.id || state.users[2].id
   );
   const activeUserId = selectedUserId || localActiveUserId;
   const [timeframe, setTimeframe] = useState<Timeframe>('last30Days');
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
 
   const selectedUser = state.users.find((u) => u.id === activeUserId) || state.users[0];
 
@@ -57,6 +60,13 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
     if (timeframe === 'last30Days') {
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
       return userTasks.filter((t) => new Date(t.createdAt || t.briefDate) >= thirtyDaysAgo);
+    }
+    if (timeframe === 'specificDate' && selectedDate) {
+      return userTasks.filter((t) => {
+        const cDate = t.createdAt ? t.createdAt.split('T')[0] : '';
+        const compDate = t.completedDate ? t.completedDate.split('T')[0] : '';
+        return t.briefDate === selectedDate || compDate === selectedDate || cDate === selectedDate;
+      });
     }
     return userTasks;
   };
@@ -87,9 +97,71 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
   const avgTurnaroundDays = turnaroundCount > 0 ? (totalTurnaroundDays / turnaroundCount).toFixed(1) : '2.5';
 
   // Audit Logs for this user (where user was changedBy or assignedTo)
-  const userAuditLogs = state.auditLogs.filter(
-    (log) => log.changedById === activeUserId || state.tasks.find((t) => t.id === log.taskId)?.assignedToId === activeUserId
+  const getFilteredAuditLogs = () => {
+    const logs = state.auditLogs.filter(
+      (log) => log.changedById === activeUserId || state.tasks.find((t) => t.id === log.taskId)?.assignedToId === activeUserId
+    );
+
+    const now = new Date();
+    if (timeframe === 'thisWeek') {
+      const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
+      return logs.filter((log) => new Date(log.timestamp) >= oneWeekAgo);
+    }
+    if (timeframe === 'lastMonth') {
+      const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
+      return logs.filter((log) => new Date(log.timestamp) >= oneMonthAgo);
+    }
+    if (timeframe === 'last30Days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
+      return logs.filter((log) => new Date(log.timestamp) >= thirtyDaysAgo);
+    }
+    if (timeframe === 'specificDate' && selectedDate) {
+      return logs.filter((log) => log.timestamp.split('T')[0] === selectedDate);
+    }
+    return logs;
+  };
+
+  const userAuditLogs = getFilteredAuditLogs().sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+
+  // Group audit logs by YYYY-MM-DD
+  const groupedAuditLogs: { [key: string]: AuditLog[] } = {};
+  userAuditLogs.forEach((log) => {
+    const dateStr = log.timestamp.split('T')[0];
+    if (!groupedAuditLogs[dateStr]) {
+      groupedAuditLogs[dateStr] = [];
+    }
+    groupedAuditLogs[dateStr].push(log);
+  });
+
+  const sortedAuditDates = Object.keys(groupedAuditLogs).sort(
+    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+  );
+
+  const formatDateHeader = (dateStr: string) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const todayStrYMD = today.toISOString().split('T')[0];
+    const yesterdayStrYMD = yesterday.toISOString().split('T')[0];
+
+    if (dateStr === todayStrYMD) {
+      return state.language === 'ar' ? 'اليوم' : 'Today';
+    }
+    if (dateStr === yesterdayStrYMD) {
+      return state.language === 'ar' ? 'أمس' : 'Yesterday';
+    }
+    
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    return new Date(dateStr).toLocaleDateString(state.language === 'ar' ? 'ar-EG' : 'en-US', options);
+  };
 
   const handleExportPerformanceCSV = () => {
     let csv = `Task ID,Title,Client,Status,Priority,Brief Date,Due Date,Completed Date\n`;
@@ -171,8 +243,18 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
             <option value="thisWeek">{t.thisWeek}</option>
             <option value="lastMonth">{t.lastMonth}</option>
             <option value="last30Days">{t.last30Days}</option>
+            <option value="specificDate">{t.specificDate}</option>
             <option value="all">All Time</option>
           </select>
+
+          {timeframe === 'specificDate' && (
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-xs cursor-pointer"
+            />
+          )}
 
           <button
             onClick={handleExportPerformanceCSV}
@@ -233,28 +315,45 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
           <span className="text-xs text-slate-500 font-medium">{userAuditLogs.length} audit entries</span>
         </div>
 
-        <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-          {userAuditLogs.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">No activity recorded for this timeframe.</div>
+        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-1">
+          {sortedAuditDates.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400">
+              {state.language === 'ar' ? 'لا توجد أنشطة مسجلة في هذا النطاق الزمني.' : 'No activity recorded for this timeframe.'}
+            </div>
           ) : (
-            userAuditLogs.map((log) => (
-              <div key={log.id} className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex items-start gap-3 text-xs">
-                <div className="p-2 bg-white text-indigo-600 rounded-lg border border-slate-200 shadow-2xs shrink-0 mt-0.5">
-                  <Activity className="w-3.5 h-3.5" />
+            sortedAuditDates.map((dateStr) => (
+              <div key={dateStr} className="space-y-3">
+                {/* Date Header */}
+                <div className="flex items-center gap-2 sticky top-0 bg-white py-1.5 z-10">
+                  <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full shadow-3xs">
+                    {formatDateHeader(dateStr)}
+                  </span>
+                  <div className="flex-1 h-px bg-slate-100" />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800">{log.taskTitle}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed">{log.actionSummary}</p>
-                  <div className="text-[10px] text-slate-400 flex items-center gap-2">
-                    <span>By: <strong className="text-slate-700">{log.changedByName}</strong></span>
-                    <span>•</span>
-                    <span>Field: <code className="text-indigo-600 font-semibold">{log.field}</code></span>
-                  </div>
+
+                {/* Audit Logs for this date */}
+                <div className="space-y-2.5">
+                  {groupedAuditLogs[dateStr].map((log) => (
+                    <div key={log.id} className="bg-slate-50/70 hover:bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex items-start gap-3 text-xs transition-colors">
+                      <div className="p-2 bg-white text-indigo-600 rounded-lg border border-slate-200 shadow-2xs shrink-0 mt-0.5">
+                        <Activity className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="font-bold text-slate-800">{log.taskTitle}</span>
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 leading-relaxed">{log.actionSummary}</p>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                          <span>By: <strong className="text-slate-700">{log.changedByName}</strong></span>
+                          <span>•</span>
+                          <span>Field: <code className="text-indigo-600 font-semibold">{log.field}</code></span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))
