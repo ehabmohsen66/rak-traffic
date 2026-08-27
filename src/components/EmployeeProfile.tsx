@@ -31,12 +31,12 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
 }) => {
   const t = translations[state.language];
 
-  type Timeframe = 'thisWeek' | 'lastMonth' | 'last30Days' | 'all' | 'specificDate';
+  type Timeframe = 'today' | 'yesterday' | 'specificDate' | 'all';
   const [localActiveUserId, setLocalActiveUserId] = useState(
     state.users.find((u) => u.role === 'employee')?.id || state.users[2].id
   );
   const activeUserId = selectedUserId || localActiveUserId;
-  const [timeframe, setTimeframe] = useState<Timeframe>('last30Days');
+  const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -48,18 +48,26 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
 
   // Timeframe filter logic
   const getFilteredTasks = () => {
-    const now = new Date();
-    if (timeframe === 'thisWeek') {
-      const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
-      return userTasks.filter((t) => new Date(t.createdAt || t.briefDate) >= oneWeekAgo);
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    if (timeframe === 'today') {
+      return userTasks.filter((t) => {
+        const cDate = t.createdAt ? t.createdAt.split('T')[0] : '';
+        const compDate = t.completedDate ? t.completedDate.split('T')[0] : '';
+        return t.briefDate === todayStr || compDate === todayStr || cDate === todayStr;
+      });
     }
-    if (timeframe === 'lastMonth') {
-      const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
-      return userTasks.filter((t) => new Date(t.createdAt || t.briefDate) >= oneMonthAgo);
-    }
-    if (timeframe === 'last30Days') {
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
-      return userTasks.filter((t) => new Date(t.createdAt || t.briefDate) >= thirtyDaysAgo);
+    if (timeframe === 'yesterday') {
+      return userTasks.filter((t) => {
+        const cDate = t.createdAt ? t.createdAt.split('T')[0] : '';
+        const compDate = t.completedDate ? t.completedDate.split('T')[0] : '';
+        return t.briefDate === yesterdayStr || compDate === yesterdayStr || cDate === yesterdayStr;
+      });
     }
     if (timeframe === 'specificDate' && selectedDate) {
       return userTasks.filter((t) => {
@@ -102,18 +110,18 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
       (log) => log.changedById === activeUserId || state.tasks.find((t) => t.id === log.taskId)?.assignedToId === activeUserId
     );
 
-    const now = new Date();
-    if (timeframe === 'thisWeek') {
-      const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
-      return logs.filter((log) => new Date(log.timestamp) >= oneWeekAgo);
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    if (timeframe === 'today') {
+      return logs.filter((log) => log.timestamp.split('T')[0] === todayStr);
     }
-    if (timeframe === 'lastMonth') {
-      const oneMonthAgo = new Date(now.getTime() - 30 * 86400000);
-      return logs.filter((log) => new Date(log.timestamp) >= oneMonthAgo);
-    }
-    if (timeframe === 'last30Days') {
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
-      return logs.filter((log) => new Date(log.timestamp) >= thirtyDaysAgo);
+    if (timeframe === 'yesterday') {
+      return logs.filter((log) => log.timestamp.split('T')[0] === yesterdayStr);
     }
     if (timeframe === 'specificDate' && selectedDate) {
       return logs.filter((log) => log.timestamp.split('T')[0] === selectedDate);
@@ -240,9 +248,8 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
             onChange={(e) => setTimeframe(e.target.value as Timeframe)}
             className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-xs cursor-pointer"
           >
-            <option value="thisWeek">{t.thisWeek}</option>
-            <option value="lastMonth">{t.lastMonth}</option>
-            <option value="last30Days">{t.last30Days}</option>
+            <option value="today">{t.today}</option>
+            <option value="yesterday">{t.yesterday}</option>
             <option value="specificDate">{t.specificDate}</option>
             <option value="all">All Time</option>
           </select>

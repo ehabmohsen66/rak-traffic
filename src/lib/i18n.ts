@@ -97,6 +97,8 @@ export interface Translations {
   employeePerformance: string;
   selectEmployee: string;
   timeframe: string;
+  today: string;
+  yesterday: string;
   thisWeek: string;
   lastMonth: string;
   last30Days: string;
@@ -216,6 +218,8 @@ export const translations: Record<Language, Translations> = {
     employeePerformance: "Employee Performance & Audit History",
     selectEmployee: "Select Employee",
     timeframe: "Timeframe",
+    today: "Today",
+    yesterday: "Yesterday",
     thisWeek: "This Week",
     lastMonth: "Last Month",
     last30Days: "Last 30 Days",
@@ -331,6 +335,8 @@ export const translations: Record<Language, Translations> = {
     employeePerformance: "أداء الموظف وسجل الأنشطة التاريخي",
     selectEmployee: "اختر الموظف",
     timeframe: "النطاق الزمني",
+    today: "اليوم",
+    yesterday: "أمس",
     thisWeek: "هذا الأسبوع",
     lastMonth: "الشهر الماضي",
     last30Days: "آخر 30 يوم",
