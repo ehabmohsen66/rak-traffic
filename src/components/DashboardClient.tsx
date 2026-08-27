@@ -72,6 +72,12 @@ export default function DashboardClient() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [employeeProfileUserId, setEmployeeProfileUserId] = useState<string | undefined>(undefined);
 
+  // Edit Profile State
+  const [editingUserId, setEditingUserId] = useState<string | undefined>(undefined);
+  const [editEmail, setEditEmail] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [editDepartment, setEditDepartment] = useState('');
+
   const isInitialMount = React.useRef(true);
 
   // 1. Initial URL load (deep linking)
@@ -551,15 +557,115 @@ export default function DashboardClient() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {state.users.map((u) => (
-                  <div key={u.id} className="bg-slate-50/70 hover:bg-white rounded-2xl p-4 flex items-center gap-3.5 border border-slate-200 shadow-xs hover:shadow-card transition-all">
-                    <img src={u.avatar} alt={u.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30" />
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold text-slate-800">{u.name}</h4>
-                      <div className="text-xs text-slate-500">{u.department}</div>
-                      <span className="inline-block text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
-                        {u.role}
-                      </span>
-                    </div>
+                  <div key={u.id} className="bg-slate-50/70 hover:bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:shadow-card transition-all flex flex-col justify-between">
+                    {editingUserId === u.id ? (
+                      <div className="space-y-3 w-full">
+                        <div className="flex items-center gap-3">
+                          <img src={editAvatar || u.avatar} alt={u.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30 shrink-0" />
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-bold text-slate-800 truncate">{u.name}</h4>
+                            <div className="text-xs text-slate-500 truncate">{u.department}</div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              {state.language === 'ar' ? 'رابط الصورة الشخصية' : 'Photo URL'}
+                            </label>
+                            <input
+                              type="text"
+                              value={editAvatar}
+                              onChange={(e) => setEditAvatar(e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100"
+                              placeholder="https://images.unsplash.com/..."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              {state.language === 'ar' ? 'البريد الإلكتروني للإشعارات' : 'Notification Email'}
+                            </label>
+                            <input
+                              type="email"
+                              value={editEmail}
+                              onChange={(e) => setEditEmail(e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100"
+                              placeholder="name@domain.com"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              {state.language === 'ar' ? 'القسم أو المنصب' : 'Department / Position'}
+                            </label>
+                            <input
+                              type="text"
+                              value={editDepartment}
+                              onChange={(e) => setEditDepartment(e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100"
+                              placeholder="e.g. Lead Graphic Designer"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingUserId(undefined)}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                          >
+                            {state.language === 'ar' ? 'إلغاء' : 'Cancel'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              store.updateUser(u.id, { avatar: editAvatar, email: editEmail, department: editDepartment });
+                              setEditingUserId(undefined);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+                          >
+                            {state.language === 'ar' ? 'حفظ' : 'Save'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3 w-full">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <img src={u.avatar} alt={u.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30 shrink-0" />
+                          <div className="space-y-1 min-w-0">
+                            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                              <span className="truncate">{u.name}</span>
+                              {u.id === state.currentUserId && (
+                                <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.2 rounded uppercase shrink-0">
+                                  {state.language === 'ar' ? 'أنت' : 'You'}
+                                </span>
+                              )}
+                            </h4>
+                            <div className="text-xs text-slate-500 truncate">{u.department}</div>
+                            <div className="text-[10px] text-slate-400 truncate max-w-[170px]" title={u.email}>{u.email}</div>
+                            <span className="inline-block text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                              {u.role}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Edit Button - Visible if Current User is Admin OR if it's the user's own card */}
+                        {(state.currentRole === 'admin' || u.id === state.currentUserId) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingUserId(u.id);
+                              setEditEmail(u.email);
+                              setEditAvatar(u.avatar);
+                              setEditDepartment(u.department);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer shrink-0"
+                            title={state.language === 'ar' ? 'تعديل الملف الشخصي' : 'Edit Profile'}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

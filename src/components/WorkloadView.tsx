@@ -96,7 +96,11 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
             <div
               key={member.id}
               onClick={() => onSelectEmployee(member.id)}
-              className="bg-white rounded-2xl p-4 space-y-4 border border-slate-200 shadow-xs hover:shadow-card hover:border-indigo-300 cursor-pointer transition-all"
+              className={`bg-white rounded-2xl p-4 space-y-4 border cursor-pointer transition-all ${
+                stats.loadLevel === 'Overloaded'
+                  ? 'border-red-200 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.06)] hover:border-red-400 hover:shadow-[0_4px_20px_rgba(239,68,68,0.12)]'
+                  : 'border-slate-200 shadow-xs hover:shadow-card hover:border-indigo-300'
+              }`}
             >
               {/* Member Header */}
               <div className="flex items-center justify-between">
@@ -104,7 +108,9 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                   <img
                     src={member.avatar}
                     alt={member.name}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                    className={`w-10 h-10 rounded-full object-cover border ${
+                      stats.loadLevel === 'Overloaded' ? 'border-red-400 ring-2 ring-red-500/20' : 'border-slate-200'
+                    }`}
                   />
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">{member.name}</h3>
@@ -112,8 +118,18 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                   </div>
                 </div>
 
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${stats.loadColor}`}>
-                  {stats.loadLevel}
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5 transition-all ${
+                  stats.loadLevel === 'Overloaded'
+                    ? 'bg-red-500 text-white border border-red-600 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.5)]'
+                    : stats.loadColor
+                }`}>
+                  {stats.loadLevel === 'Overloaded' && (
+                    <span className="inline-block animate-bounce text-xs">🔥</span>
+                  )}
+                  <span>{stats.loadLevel}</span>
+                  {stats.loadLevel === 'Overloaded' && (
+                    <span className="inline-block animate-bounce text-xs" style={{ animationDelay: '0.1s' }}>🔥</span>
+                  )}
                 </span>
               </div>
 
@@ -147,7 +163,7 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                   <div
                     className={`h-full rounded-full transition-all ${
                       stats.loadLevel === 'Overloaded'
-                        ? 'bg-rose-500'
+                        ? 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 animate-pulse'
                         : stats.loadLevel === 'Busy'
                         ? 'bg-amber-500'
                         : 'bg-emerald-500'

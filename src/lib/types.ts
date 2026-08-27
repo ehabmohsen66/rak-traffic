@@ -66,7 +66,7 @@ export interface Client {
 
 export type Priority = 'Normal' | 'High' | 'Urgent' | 'Super Urgent';
 
-export type TaskStatus = 'Not started' | 'Briefed' | 'In progress' | 'Completed' | 'Delayed';
+export type TaskStatus = 'Not started' | 'Briefed' | 'In progress' | 'Super Urgent' | 'Completed' | 'Delayed';
 
 export interface TaskAttachment {
   id: string;

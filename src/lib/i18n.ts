@@ -49,6 +49,7 @@ export interface Translations {
   statusNotStarted: string;
   statusBriefed: string;
   statusInProgress: string;
+  statusSuperUrgent: string;
   statusCompleted: string;
   statusDelayed: string;
   
@@ -172,6 +173,7 @@ export const translations: Record<Language, Translations> = {
     statusNotStarted: "Not Started",
     statusBriefed: "Briefed",
     statusInProgress: "In Progress",
+    statusSuperUrgent: "🔥 Super Urgent",
     statusCompleted: "Completed",
     statusDelayed: "Delayed / Overdue",
     
@@ -285,6 +287,7 @@ export const translations: Record<Language, Translations> = {
     statusNotStarted: "لم تبدأ",
     statusBriefed: "تم الإحاطة",
     statusInProgress: "قيد التنفيذ",
+    statusSuperUrgent: "🔥 عاجل جداً (Super Urgent)",
     statusCompleted: "مكتملة",
     statusDelayed: "متأخرة / متجاوزة",
     

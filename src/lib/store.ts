@@ -106,7 +106,13 @@ export class TrafficStore {
           if (Array.isArray(parsed.users)) {
             mergedUsers = INITIAL_USERS.map((initUser) => {
               const savedUser = parsed.users.find((u: User) => u.id === initUser.id);
-              return savedUser ? { ...savedUser, email: initUser.email, name: initUser.name } : initUser;
+              return savedUser ? { 
+                ...initUser, 
+                ...savedUser,
+                email: savedUser.email || initUser.email,
+                avatar: savedUser.avatar || initUser.avatar,
+                name: savedUser.name || initUser.name
+              } : initUser;
             });
             // Also keep any custom created users
             parsed.users.forEach((u: User) => {
@@ -258,6 +264,41 @@ export class TrafficStore {
 
   public setCurrentRole(role: UserRole) {
     this.state.currentRole = role;
+    this.notify();
+  }
+
+  public updateUser(userId: string, updates: Partial<User>) {
+    const userIndex = this.state.users.findIndex((u) => u.id === userId);
+    if (userIndex === -1) return;
+
+    this.state.users[userIndex] = {
+      ...this.state.users[userIndex],
+      ...updates
+    };
+
+    // Update avatar/name of comments if the user's details changed
+    if (updates.avatar) {
+      Object.keys(this.state.comments).forEach((taskId) => {
+        this.state.comments[taskId] = this.state.comments[taskId].map((comment) => {
+          if (comment.userId === userId) {
+            return { ...comment, userAvatar: updates.avatar! };
+          }
+          return comment;
+        });
+      });
+    }
+
+    if (updates.name) {
+      Object.keys(this.state.comments).forEach((taskId) => {
+        this.state.comments[taskId] = this.state.comments[taskId].map((comment) => {
+          if (comment.userId === userId) {
+            return { ...comment, userName: updates.name! };
+          }
+          return comment;
+        });
+      });
+    }
+
     this.notify();
   }
 
