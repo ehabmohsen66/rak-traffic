@@ -570,15 +570,31 @@ export default function DashboardClient() {
                         <div className="space-y-2">
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                              {state.language === 'ar' ? 'رابط الصورة الشخصية' : 'Photo URL'}
+                              {state.language === 'ar' ? 'الصورة الشخصية' : 'Profile Photo'}
                             </label>
-                            <input
-                              type="text"
-                              value={editAvatar}
-                              onChange={(e) => setEditAvatar(e.target.value)}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100"
-                              placeholder="https://images.unsplash.com/..."
-                            />
+                            <div className="flex items-center gap-3">
+                              <img src={editAvatar || u.avatar} alt="Preview" className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" />
+                              <label className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 shadow-xs">
+                                <span>📤 {state.language === 'ar' ? 'تحميل صورة' : 'Upload Image'}</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = (event) => {
+                                        if (event.target?.result) {
+                                          setEditAvatar(event.target.result as string);
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
