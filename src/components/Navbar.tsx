@@ -9,8 +9,7 @@ import {
   Globe, 
   AlertTriangle, 
   ChevronDown,
-  UserCheck,
-  Sun
+  UserCheck
 } from 'lucide-react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
@@ -39,26 +38,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const userDropdownRef = React.useRef<HTMLDivElement>(null);
-  const [newsIndex, setNewsIndex] = useState(0);
-
-  const lebaneseNewsItems = state.language === 'ar' ? [
-    { tag: "بيروت", title: "مؤتمر الذكاء الاصطناعي والإبداع الرقمي ينطلق في أسواق بيروت بمشاركة رواد الأعمال", time: "منذ 15 دقيقة" },
-    { tag: "اقتصاد", title: "القطاع السياحي اللبناني يسجل نمواً ملحوظاً مع عودة المغتربين والفعاليات الثقافية الصيفية", time: "منذ 45 دقيقة" },
-    { tag: "تكنولوجيا", title: "مبادرات ريادية في بيروت لدعم قطاع البرمجيات والإنتاج الإبداعي في الشرق الأوسط", time: "منذ ساعة" },
-    { tag: "طقس", title: "أجواء صيفية مشمسة ونسائم عليلة في جبال لبنان وجبيل وبيروت • 29°C", time: "تحديث مباشر" }
-  ] : [
-    { tag: "BEIRUT", title: "Lebanon Creative & AI Tech Summit kicks off in Downtown Beirut attracting regional agencies", time: "15m ago" },
-    { tag: "CULTURE", title: "Byblos & Baalbeck Festivals celebrate full season of vibrant arts & international shows", time: "40m ago" },
-    { tag: "TECH HUB", title: "Digital startups and media powerhouses expand operations across Beirut & Antelias", time: "1h ago" },
-    { tag: "WEATHER", title: "Warm summer breeze across Beirut & Mediterranean coastline • 29°C Clear", time: "Live" }
-  ];
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setNewsIndex((prev) => (prev + 1) % lebaneseNewsItems.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [lebaneseNewsItems.length]);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -85,47 +64,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const myDelayedTasksCount = state.tasks.filter((t) => t.assignedToId === state.currentUserId && t.status !== 'Completed' && t.dueDate < todayStr).length;
   const delayedTasksCount = myDelayedTasksCount;
 
-  const currentNews = lebaneseNewsItems[newsIndex];
-
   return (
     <div className="w-full flex flex-col sticky top-0 z-40">
-      {/* Lebanese News & Creative Pulse Ticker Bar */}
-      <div className="w-full bg-slate-900 text-white text-[11px] px-4 lg:px-6 py-1.5 flex items-center justify-between border-b border-slate-800 shadow-inner overflow-hidden">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          {/* Lebanese Badge */}
-          <div className="flex items-center gap-1.5 bg-red-600/90 text-white font-black text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 shadow-xs">
-            <span>🇱🇧</span>
-            <span>{state.language === 'ar' ? 'أخبار لبنان' : 'LEBANON NEWS'}</span>
-          </div>
-
-          {/* Category Tag */}
-          <span className="hidden sm:inline text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.2 rounded shrink-0">
-            {currentNews.tag}
-          </span>
-
-          {/* Live Headline with fade transition */}
-          <div className="truncate font-medium text-slate-200 hover:text-white transition-colors flex items-center gap-2">
-            <span className="truncate">{currentNews.title}</span>
-            <span className="text-[10px] text-slate-400 shrink-0 font-normal">• {currentNews.time}</span>
-          </div>
-        </div>
-
-        {/* Live News Dots Indicator & Weather */}
-        <div className="flex items-center gap-2 shrink-0 pl-3">
-          <div className="flex items-center gap-1">
-            {lebaneseNewsItems.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setNewsIndex(i)}
-                className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
-                  newsIndex === i ? 'bg-red-500 w-3' : 'bg-slate-700 hover:bg-slate-500'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
       <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center justify-between shadow-xs">
       {/* Brand Identity / Logo */}
       <div className="flex items-center gap-4">
@@ -286,14 +226,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Beirut Weather Pill */}
-        <div className="hidden sm:flex items-center gap-1.5 bg-amber-50/80 border border-amber-200/80 hover:bg-amber-100/70 text-amber-900 px-2.5 py-1.5 rounded-xl text-xs font-semibold shadow-2xs transition-colors select-none" title="Beirut Live Weather • Sunny Mediterranean Coast">
-          <Sun className="w-4 h-4 text-amber-500 fill-amber-400 animate-spin-slow shrink-0" />
-          <div className="flex items-center gap-1">
-            <span className="font-extrabold text-amber-950">29°C</span>
-            <span className="text-[10px] text-amber-700 font-medium hidden md:inline">{state.language === 'ar' ? 'بيروت مشمس' : 'Beirut Clear'}</span>
-          </div>
-        </div>
+
 
         {/* Share Current View URL Button */}
         <button
