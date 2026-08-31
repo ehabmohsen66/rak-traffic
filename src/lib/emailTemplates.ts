@@ -619,20 +619,20 @@ export function generateTestEmail(params: { recipientName: string; recipientEmai
     <!-- Personal Greeting -->
     <div style="font-size: 15px; color: #0f172a; margin-bottom: 18px; line-height: 1.5;">
       Hi <strong style="color: #4f46e5;">@${escapeHtml(recipientName)}</strong>,<br>
-      <span style="color: #475569;">This is a test notification confirming that the <strong>RAK Traffic Email Engine</strong> is connected and operational.</span>
+      <span style="color: #475569;">Your RAK Traffic notifications are active. You will receive real-time updates here whenever tasks are assigned, updated, or completed.</span>
     </div>
 
-    <!-- Status Card -->
+    <!-- Info Card -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
       <tr>
         <td style="padding: 18px 20px;">
-          <div style="font-size: 13px; font-weight: 800; color: #059669; margin-bottom: 10px;">
-            ● CONNECTION STATUS: ONLINE & OPERATIONAL
+          <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+            Notification Preferences
           </div>
           <div style="font-size: 12px; color: #64748b; line-height: 1.6;">
-            • Target Recipient: <strong style="color:#1e293b;">${escapeHtml(recipientEmail)}</strong><br>
-            • Time of Dispatch: ${new Date().toUTCString()}<br>
-            • Automated Daily Scan: Active
+            • Recipient: <strong style="color:#1e293b;">${escapeHtml(recipientEmail)}</strong><br>
+            • Task Assignments & Due Dates: Active<br>
+            • Daily Morning Reminders: Active
           </div>
         </td>
       </tr>
