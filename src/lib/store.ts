@@ -104,7 +104,6 @@ export class TrafficStore {
             );
           }
 
-          // Sync official colleague emails and new users
           let mergedUsers = INITIAL_USERS;
           if (Array.isArray(parsed.users)) {
             mergedUsers = INITIAL_USERS.map((initUser) => {
@@ -112,9 +111,11 @@ export class TrafficStore {
               return savedUser ? { 
                 ...initUser, 
                 ...savedUser,
-                email: initUser.email || savedUser.email,
+                email: savedUser.email || initUser.email,
                 avatar: savedUser.avatar || initUser.avatar,
-                name: savedUser.name || initUser.name
+                name: savedUser.name || initUser.name,
+                department: savedUser.department || initUser.department,
+                role: savedUser.role || initUser.role
               } : initUser;
             });
             // Also keep any custom created users

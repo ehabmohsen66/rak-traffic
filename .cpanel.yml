@@ -5,16 +5,18 @@ deployment:
     - /bin/cp -R src $DEPLOYPATH
     - /bin/cp -R public $DEPLOYPATH
     - /bin/cp -R .next $DEPLOYPATH
-    - /bin/cp -R data $DEPLOYPATH
     - /bin/cp app.js $DEPLOYPATH
     - /bin/cp package.json $DEPLOYPATH
     - /bin/cp package-lock.json $DEPLOYPATH
     - /bin/cp next.config.mjs $DEPLOYPATH
     - /bin/cp postcss.config.mjs $DEPLOYPATH
     - /bin/cp tailwind.config.ts $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATH/data
+    - /bin/mkdir -p $DEPLOYPATH/public/uploads/avatars
     - /bin/mkdir -p $DEPLOYPATH/tmp
     - /bin/touch $DEPLOYPATH/tmp/restart.txt
     - /bin/mkdir -p /home/rak4dev/repositories/rak-traffic/tmp
     - /bin/touch /home/rak4dev/repositories/rak-traffic/tmp/restart.txt
+
 
 

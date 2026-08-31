@@ -71,7 +71,7 @@ export async function getServerState(): Promise<AppState> {
       const content = await fs.promises.readFile(DATA_FILE, 'utf-8');
       const parsed = JSON.parse(content);
 
-      // Merge verified official users
+      // Merge users with full priority to user-saved customizations (avatar, email, department, name, role)
       let mergedUsers = INITIAL_USERS;
       if (Array.isArray(parsed.users)) {
         mergedUsers = INITIAL_USERS.map((initUser) => {
@@ -79,10 +79,11 @@ export async function getServerState(): Promise<AppState> {
           return savedUser ? {
             ...initUser,
             ...savedUser,
-            email: initUser.email || savedUser.email,
+            email: savedUser.email || initUser.email,
             avatar: savedUser.avatar || initUser.avatar,
             name: savedUser.name || initUser.name,
-            department: savedUser.department || initUser.department
+            department: savedUser.department || initUser.department,
+            role: savedUser.role || initUser.role
           } : initUser;
         });
 
