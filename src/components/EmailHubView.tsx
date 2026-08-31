@@ -128,37 +128,43 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({
     void loadServerStatus();
   }, [loadServerStatus]);
 
+  // Sample demo task used for instant live preview even when workspace task list is empty
+  const SAMPLE_DEMO_TASK = useMemo<Task>(() => ({
+    id: 'tsk-sample-demo',
+    title: 'Matrix / Johnson UAE Campaign Key Visuals & Resizes',
+    clientId: state.clients[0]?.id || 'cli-matrix-dubai',
+    assignedToId: state.currentUserId || state.users[0]?.id || 'usr-ehab',
+    assignedById: state.users.find((u) => u.id === 'usr-johnny')?.id || state.users[1]?.id || 'usr-johnny',
+    priority: 'Urgent',
+    status: 'In progress',
+    briefDate: new Date().toISOString().split('T')[0],
+    dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    notes: 'Design 1:1, 9:16 and 16:9 visual assets with bold typography and high-res vector elements.'
+  }), [state.clients, state.currentUserId, state.users]);
+
   // Compute selected task object for live preview
   const currentTask = useMemo(() => {
-    return state.tasks.find((t) => t.id === selectedTaskId) || state.tasks[0];
-  }, [state.tasks, selectedTaskId]);
+    if (selectedTaskId === 'tsk-sample-demo' || state.tasks.length === 0) {
+      return SAMPLE_DEMO_TASK;
+    }
+    return state.tasks.find((t) => t.id === selectedTaskId) || state.tasks[0] || SAMPLE_DEMO_TASK;
+  }, [state.tasks, selectedTaskId, SAMPLE_DEMO_TASK]);
 
   const currentAssignee = useMemo(() => {
-    if (!currentTask) return state.users[4] || state.users[0];
     return state.users.find((u) => u.id === currentTask.assignedToId) || state.users[0];
   }, [state.users, currentTask]);
 
   const currentAssigner = useMemo(() => {
-    if (!currentTask) return state.users[2] || state.users[0];
-    return state.users.find((u) => u.id === currentTask.assignedById) || state.users[0];
+    return state.users.find((u) => u.id === currentTask.assignedById) || state.users[1] || state.users[0];
   }, [state.users, currentTask]);
 
   const currentClient = useMemo(() => {
-    if (!currentTask) return state.clients[0];
     return state.clients.find((c) => c.id === currentTask.clientId) || state.clients[0];
   }, [state.clients, currentTask]);
 
   // Generate Email Preview Content in real-time
   const renderedEmail = useMemo(() => {
-    if (!currentTask) {
-      return {
-        subject: 'No task selected',
-        html: '<p>Please select a task to preview</p>',
-        text: 'Please select a task to preview'
-      };
-    }
-
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://rak4dev.com';
 
     switch (selectedTemplate) {
       case 'assigned':
@@ -481,10 +487,13 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({
                 {state.language === 'ar' ? '2. اختيار المهمة للمعاينة الحية' : '2. Preview with Workspace Task Data'}
               </label>
               <select
-                value={selectedTaskId}
+                value={selectedTaskId || 'tsk-sample-demo'}
                 onChange={(e) => setSelectedTaskId(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
               >
+                <option value="tsk-sample-demo">
+                  ✨ {state.language === 'ar' ? 'نموذج تجريبي للمعاينة الحية' : 'Sample Demo Task (Live Preview)'}
+                </option>
                 {state.tasks.map((task) => {
                   const client = state.clients.find((c) => c.id === task.clientId);
                   const assignee = state.users.find((u) => u.id === task.assignedToId);
