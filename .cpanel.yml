@@ -1,9 +1,20 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/rak4dev/public_html
-    - if [ -d "$DEPLOYPATH" ]; then /bin/cp -a . $DEPLOYPATH/ && /bin/cp -a .next $DEPLOYPATH/ && /bin/mkdir -p $DEPLOYPATH/tmp && /bin/touch $DEPLOYPATH/tmp/restart.txt; fi
-    - export DEPLOYPATH2=/home/rak4dev/rak-traffic
-    - if [ -d "$DEPLOYPATH2" ]; then /bin/cp -a . $DEPLOYPATH2/ && /bin/cp -a .next $DEPLOYPATH2/ && /bin/mkdir -p $DEPLOYPATH2/tmp && /bin/touch $DEPLOYPATH2/tmp/restart.txt; fi
-    - /bin/mkdir -p /home/rak4dev/repositories/rak-traffic/tmp && /bin/touch /home/rak4dev/repositories/rak-traffic/tmp/restart.txt
+    - export DEPLOYPATH=/home/rak4dev/public_html/
+    - /bin/cp -R src $DEPLOYPATH
+    - /bin/cp -R public $DEPLOYPATH
+    - /bin/cp -R .next $DEPLOYPATH
+    - /bin/cp -R data $DEPLOYPATH
+    - /bin/cp app.js $DEPLOYPATH
+    - /bin/cp package.json $DEPLOYPATH
+    - /bin/cp package-lock.json $DEPLOYPATH
+    - /bin/cp next.config.mjs $DEPLOYPATH
+    - /bin/cp postcss.config.mjs $DEPLOYPATH
+    - /bin/cp tailwind.config.ts $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATH/tmp
+    - /bin/touch $DEPLOYPATH/tmp/restart.txt
+    - /bin/mkdir -p /home/rak4dev/repositories/rak-traffic/tmp
+    - /bin/touch /home/rak4dev/repositories/rak-traffic/tmp/restart.txt
+
 
