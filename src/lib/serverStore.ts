@@ -37,19 +37,7 @@ export function getInitialServerState(): AppState {
     notifications: INITIAL_NOTIFICATIONS,
     emailLogs: INITIAL_EMAIL_LOGS,
     emailConfig: INITIAL_EMAIL_CONFIG,
-    comments: {
-      'tsk-ehab-1': [
-        {
-          id: 'cmt-1',
-          taskId: 'tsk-ehab-1',
-          userId: 'usr-johnny',
-          userName: 'Johnny Al Sandroussy',
-          userAvatar: INITIAL_USERS[2]?.avatar || '',
-          message: 'Please focus on the comparison between Dubai and Abu Dhabi store conversions.',
-          createdAt: '2026-08-14T09:30:00Z'
-        }
-      ]
-    },
+    comments: {},
     currentUserId: 'usr-farah',
     currentRole: 'admin',
     language: 'en'
