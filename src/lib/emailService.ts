@@ -23,7 +23,7 @@ export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
   provider: 'vercel',
   fromName: 'RAK 4 CREATIVE Traffic',
   fromEmail: 'onboarding@resend.dev',
-  replyTo: 'farah.y@rak4creative.com',
+  replyTo: 'farah@rak4cloud.com',
   enableAssignmentEmails: true,
   enableDailyReminders: true
 };

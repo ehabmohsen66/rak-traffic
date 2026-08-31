@@ -4,7 +4,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-farah',
     name: 'Farah Younes',
-    email: 'farah.y@rak4creative.com',
+    email: 'farah@rak4cloud.com',
     role: 'admin',
     department: 'General Management',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
@@ -44,7 +44,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'usr-ehab',
     name: 'Ehab Mohsen',
-    email: 'ehab.m@rak4creative.com',
+    email: 'ehab.m@rak4digital.com',
     role: 'employee',
     department: 'Senior Digital Marketing',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
@@ -851,7 +851,7 @@ export const INITIAL_EMAIL_CONFIG: EmailConfig = {
   provider: 'vercel',
   fromName: 'RAK 4 CREATIVE Traffic Operations',
   fromEmail: 'onboarding@resend.dev',
-  replyTo: 'farah.y@rak4creative.com',
+  replyTo: 'farah@rak4cloud.com',
   enableAssignmentEmails: true,
   enableDailyReminders: true,
   lastDailyScanDate: '2026-08-17'
@@ -864,7 +864,7 @@ export const INITIAL_EMAIL_LOGS: EmailLog[] = [
     taskTitle: 'Ad Report from Campaign Start Date to Sunday',
     recipientId: 'usr-ehab',
     recipientName: 'Ehab Mohsen',
-    recipientEmail: 'ehab.m@rak4creative.com',
+    recipientEmail: 'ehab.m@rak4digital.com',
     senderName: 'RAK 4 CREATIVE Traffic Operations',
     senderEmail: 'traffic@rak4creative.com',
     subject: '[RAK Traffic] New Task Assigned: Ad Report from Campaign Start Date to Sunday - Matrix / Johnson Dubai',

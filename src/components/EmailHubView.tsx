@@ -88,11 +88,11 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({
   const [provider, setProvider] = useState<EmailProviderType>(state.emailConfig.provider || 'simulated');
   const [fromName, setFromName] = useState(state.emailConfig.fromName || 'RAK 4 CREATIVE Traffic');
   const [fromEmail, setFromEmail] = useState(state.emailConfig.fromEmail || 'traffic@rak4creative.com');
-  const [replyTo, setReplyTo] = useState(state.emailConfig.replyTo || 'farah.y@rak4creative.com');
+  const [replyTo, setReplyTo] = useState(state.emailConfig.replyTo || 'farah@rak4cloud.com');
   const [enableAssignmentEmails, setEnableAssignmentEmails] = useState(state.emailConfig.enableAssignmentEmails);
   const [enableDailyReminders, setEnableDailyReminders] = useState(state.emailConfig.enableDailyReminders);
   const [testEmailRecipient, setTestEmailRecipient] = useState(
-    state.users.find((u) => u.id === state.currentUserId)?.email || 'ehab.m@rak4creative.com'
+    state.users.find((u) => u.id === state.currentUserId)?.email || 'ehab.m@rak4digital.com'
   );
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [dailyScanRunning, setDailyScanRunning] = useState(false);
@@ -903,7 +903,7 @@ export const EmailHubView: React.FC<EmailHubViewProps> = ({
                   type="email"
                   value={replyTo}
                   onChange={(e) => setReplyTo(e.target.value)}
-                  placeholder="farah.y@rak4creative.com"
+                  placeholder="farah@rak4cloud.com"
                   className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"
                 />
               </div>
