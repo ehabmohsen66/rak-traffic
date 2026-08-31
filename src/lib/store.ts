@@ -272,13 +272,13 @@ export class TrafficStore {
     this.state.recurrenceRules.forEach((rule) => {
       if (rule.active && rule.nextRunDate <= todayStr) {
         stateChanged = true;
-        // Generate Task Instance
+        const openerId = rule.createdById || this.state.currentUserId;
         const newTask: Task = {
           id: `tsk-rec-${Date.now()}`,
           title: `${rule.titleTemplate} (${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`,
           clientId: rule.clientId,
           assignedToId: rule.assignedToId,
-          assignedById: this.state.currentUserId,
+          assignedById: openerId,
           priority: rule.priority,
           status: 'Not started',
           briefDate: todayStr,
@@ -701,9 +701,11 @@ export class TrafficStore {
 
   // Recurrence Rules CRUD
   public addRecurrenceRule(rule: Omit<RecurrenceRule, 'id' | 'createdAt'>) {
+    const currentUser = this.state.users.find((u) => u.id === this.state.currentUserId);
     const newRule: RecurrenceRule = {
       ...rule,
       id: `rec-${Date.now()}`,
+      createdById: rule.createdById || currentUser?.id || this.state.currentUserId,
       createdAt: new Date().toISOString()
     };
     this.state.recurrenceRules.unshift(newRule);

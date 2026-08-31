@@ -125,6 +125,7 @@ export interface RecurrenceRule {
   endDate?: string | null;
   nextRunDate: string;
   active: boolean;
+  createdById?: string;
   createdAt?: string;
 }
 
