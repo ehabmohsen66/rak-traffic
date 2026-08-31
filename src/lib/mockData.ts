@@ -881,7 +881,7 @@ export const INITIAL_EMAIL_LOGS: EmailLog[] = [
     taskTitle: 'Feetlab UAE Social Media Story Highlights Refresh',
     recipientId: 'usr-khaled',
     recipientName: 'Khaled Soueid',
-    recipientEmail: 'khaled.s@rak4creative.com',
+    recipientEmail: 'k.soueid@rak4digital.com',
     senderName: 'RAK 4 CREATIVE Traffic Operations',
     senderEmail: 'traffic@rak4creative.com',
     subject: '[🚨 OVERDUE - Daily Update #1] Feetlab UAE Social Media Story Highlights Refresh (1 day late)',

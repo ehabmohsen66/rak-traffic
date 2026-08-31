@@ -6,6 +6,10 @@ import { getPublicBaseUrl } from '@/lib/requestUrl';
 import { getErrorMessage } from '@/lib/errors';
 import { EmailConfig, Task, User, Client } from '@/lib/types';
 
+import { getServerState } from '@/lib/serverStore';
+
+export const dynamic = 'force-dynamic';
+
 function isAuthorized(req: NextRequest): boolean {
   const expectedSecret = process.env.CRON_SECRET;
 
@@ -35,13 +39,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const baseUrl = getPublicBaseUrl(req);
+    const serverState = await getServerState();
 
-    // Run scan with tasks
+    // Run scan with live server tasks and verified users
     const scanResult = await runDailyDeadlineScan({
-      tasks: INITIAL_TASKS,
-      users: INITIAL_USERS,
-      clients: INITIAL_CLIENTS,
-      config: DEFAULT_EMAIL_CONFIG,
+      tasks: serverState.tasks,
+      users: serverState.users,
+      clients: serverState.clients,
+      config: serverState.emailConfig || DEFAULT_EMAIL_CONFIG,
       baseUrl
     });
 

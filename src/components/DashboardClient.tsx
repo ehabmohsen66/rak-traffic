@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrafficStore, store } from '@/lib/store';
 import { translations } from '@/lib/i18n';
-import { Task } from '@/lib/types';
+import type { Task, User } from '@/lib/types';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar, MainTab } from '@/components/Sidebar';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -19,6 +19,7 @@ import { TaskModal } from '@/components/TaskModal';
 import { BulkTaskModal } from '@/components/BulkTaskModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { HighFiveCelebration } from '@/components/HighFiveCelebration';
+import { EditProfileModal } from '@/components/EditProfileModal';
 import { readUrlParams, updateUrl } from '@/lib/useUrlSync';
 import { 
   LayoutGrid, 
@@ -28,7 +29,7 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle,
-  User,
+  User as UserIcon,
   ListTodo,
   Building
 } from 'lucide-react';
@@ -75,11 +76,8 @@ export default function DashboardClient() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [employeeProfileUserId, setEmployeeProfileUserId] = useState<string | undefined>(undefined);
 
-  // Edit Profile State
-  const [editingUserId, setEditingUserId] = useState<string | undefined>(undefined);
-  const [editEmail, setEditEmail] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
-  const [editDepartment, setEditDepartment] = useState('');
+  // Edit Profile Modal State
+  const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
 
   const isInitialMount = React.useRef(true);
 
@@ -350,7 +348,7 @@ export default function DashboardClient() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <User className="w-3.5 h-3.5" />
+                      <UserIcon className="w-3.5 h-3.5" />
                       <span>{t.myTasks} ({myOpenTasks.length})</span>
                     </button>
 
@@ -553,156 +551,62 @@ export default function DashboardClient() {
           {/* View 9: Team & Settings */}
           {activeTab === 'settings' && (
             <div className="bg-white rounded-2xl p-6 space-y-6 border border-slate-200 shadow-xs">
-              <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-lg font-bold text-slate-900">{t.navSettings}</h2>
-                <p className="text-xs text-slate-500">Team members, departments, and active role configurations.</p>
+              <div className="border-b border-slate-100 pb-4 flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">{t.navSettings}</h2>
+                  <p className="text-xs text-slate-500">
+                    {state.language === 'ar'
+                      ? 'أعضاء الفريق، الصلاحيات، والصور والبريد الإلكتروني المحدث على الخادم مباشرة.'
+                      : 'Team members, departments, roles, and live server-synced photos and email addresses.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>{state.language === 'ar' ? 'مزامنة الخادم نشطة' : 'Live Server Sync Active'}</span>
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {state.users.map((u) => (
                   <div key={u.id} className="bg-slate-50/70 hover:bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:shadow-card transition-all flex flex-col justify-between">
-                    {editingUserId === u.id ? (
-                      <div className="space-y-3 w-full">
-                        <div className="flex items-center gap-3">
-                          <img src={editAvatar || u.avatar} alt={u.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30 shrink-0" />
-                          <div className="min-w-0">
-                            <h4 className="text-sm font-bold text-slate-800 truncate">{u.name}</h4>
-                            <div className="text-xs text-slate-500 truncate">{u.department}</div>
-                          </div>
+                    <div className="flex items-start justify-between gap-3 w-full">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="relative group shrink-0">
+                          <img src={u.avatar} alt={u.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30" />
                         </div>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                              {state.language === 'ar' ? 'الصورة الشخصية' : 'Profile Photo'}
-                            </label>
-                            <div className="flex items-center gap-3">
-                              <img src={editAvatar || u.avatar} alt="Preview" className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" />
-                              <label className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 shadow-xs">
-                                <span>📤 {state.language === 'ar' ? 'تحميل صورة' : 'Upload Image'}</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      const reader = new FileReader();
-                                      reader.onload = () => {
-                                        if (reader.result) {
-                                          const img = new Image();
-                                          img.onload = () => {
-                                            const canvas = document.createElement('canvas');
-                                            const size = 120; // 120x120 is plenty for avatar circles
-                                            canvas.width = size;
-                                            canvas.height = size;
-                                            const ctx = canvas.getContext('2d');
-                                            if (ctx) {
-                                              // Draw center cropped square
-                                              const minDim = Math.min(img.width, img.height);
-                                              const sx = (img.width - minDim) / 2;
-                                              const sy = (img.height - minDim) / 2;
-                                              ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-                                              setEditAvatar(canvas.toDataURL('image/jpeg', 0.8));
-                                            } else {
-                                              setEditAvatar(reader.result as string);
-                                            }
-                                          };
-                                          img.src = reader.result as string;
-                                        }
-                                      };
-                                      reader.readAsDataURL(file);
-                                    }
-                                  }}
-                                />
-                              </label>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                              {state.language === 'ar' ? 'البريد الإلكتروني للإشعارات' : 'Notification Email'}
-                            </label>
-                            <input
-                              type="email"
-                              value={editEmail}
-                              onChange={(e) => setEditEmail(e.target.value)}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100"
-                              placeholder="name@domain.com"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                              {state.language === 'ar' ? 'القسم أو المنصب' : 'Department / Position'}
-                            </label>
-                            <input
-                              type="text"
-                              value={editDepartment}
-                              onChange={(e) => setEditDepartment(e.target.value)}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100"
-                              placeholder="e.g. Lead Graphic Designer"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-end gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => setEditingUserId(undefined)}
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
-                          >
-                            {state.language === 'ar' ? 'إلغاء' : 'Cancel'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              store.updateUser(u.id, { avatar: editAvatar, email: editEmail, department: editDepartment });
-                              setEditingUserId(undefined);
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
-                          >
-                            {state.language === 'ar' ? 'حفظ' : 'Save'}
-                          </button>
+                        <div className="space-y-1 min-w-0">
+                          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                            <span className="truncate">{u.name}</span>
+                            {u.id === state.currentUserId && (
+                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.2 rounded uppercase shrink-0">
+                                {state.language === 'ar' ? 'أنت' : 'You'}
+                              </span>
+                            )}
+                          </h4>
+                          <div className="text-xs text-slate-500 truncate">{u.department}</div>
+                          <div className="text-[10px] text-slate-400 truncate max-w-[170px]" title={u.email}>{u.email}</div>
+                          <span className="inline-block text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                            {u.role}
+                          </span>
                         </div>
                       </div>
-                    ) : (
-                      <div className="flex items-start justify-between gap-3 w-full">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <img src={u.avatar} alt={u.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30 shrink-0" />
-                          <div className="space-y-1 min-w-0">
-                            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                              <span className="truncate">{u.name}</span>
-                              {u.id === state.currentUserId && (
-                                <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.2 rounded uppercase shrink-0">
-                                  {state.language === 'ar' ? 'أنت' : 'You'}
-                                </span>
-                              )}
-                            </h4>
-                            <div className="text-xs text-slate-500 truncate">{u.department}</div>
-                            <div className="text-[10px] text-slate-400 truncate max-w-[170px]" title={u.email}>{u.email}</div>
-                            <span className="inline-block text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
-                              {u.role}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* Edit Button - Visible if Current User is Admin OR if it's the user's own card */}
-                        {(state.currentRole === 'admin' || u.id === state.currentUserId) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingUserId(u.id);
-                              setEditEmail(u.email);
-                              setEditAvatar(u.avatar);
-                              setEditDepartment(u.department);
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer shrink-0"
-                            title={state.language === 'ar' ? 'تعديل الملف الشخصي' : 'Edit Profile'}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    )}
+                      
+                      {/* Edit Button - Visible if Current User is Admin OR if it's the user's own card */}
+                      {(state.currentRole === 'admin' || u.id === state.currentUserId) && (
+                        <button
+                          type="button"
+                          onClick={() => setProfileModalUser(u)}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer shrink-0"
+                          title={state.language === 'ar' ? 'تعديل الصورة والبيانات' : 'Edit Photo & Profile'}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -738,6 +642,16 @@ export default function DashboardClient() {
           state={state}
           onClose={() => setShowNotifications(false)}
           onSelectTask={handleSelectNotificationTask}
+        />
+      )}
+
+      {/* Edit Profile Modal */}
+      {profileModalUser && (
+        <EditProfileModal
+          store={store}
+          state={state}
+          user={profileModalUser}
+          onClose={() => setProfileModalUser(null)}
         />
       )}
 

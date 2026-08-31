@@ -197,3 +197,19 @@ export interface EmailConfig {
   lastDailyScanDate?: string;
 }
 
+export interface AppState {
+  users: User[];
+  clients: Client[];
+  tasks: Task[];
+  recurrenceRules: RecurrenceRule[];
+  auditLogs: AuditLog[];
+  notifications: Notification[];
+  emailLogs: EmailLog[];
+  emailConfig: EmailConfig;
+  comments: Record<string, TaskComment[]>; // taskId -> TaskComment[]
+  currentUserId: string;
+  currentRole: UserRole;
+  language: 'en' | 'ar';
+}
+
+

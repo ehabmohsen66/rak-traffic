@@ -84,6 +84,9 @@ export class TrafficStore {
   private state: AppState;
   private listeners: Set<() => void> = new Set();
   private onTaskCompletedCallback?: (task: Task) => void;
+  private syncTimer: ReturnType<typeof setInterval> | null = null;
+  private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private isSyncing: boolean = false;
 
   constructor() {
     this.state = getInitialState();
@@ -109,7 +112,7 @@ export class TrafficStore {
               return savedUser ? { 
                 ...initUser, 
                 ...savedUser,
-                email: savedUser.email || initUser.email,
+                email: initUser.email || savedUser.email,
                 avatar: savedUser.avatar || initUser.avatar,
                 name: savedUser.name || initUser.name
               } : initUser;
@@ -134,7 +137,77 @@ export class TrafficStore {
         console.error(e);
       }
       this.evaluateAutomaticDelaysAndRecurrence();
+      this.initServerSync();
     }
+  }
+
+  private initServerSync() {
+    if (typeof window === 'undefined') return;
+
+    // 1. Initial immediate sync with server data
+    this.syncWithServer();
+
+    // 2. Poll server every 6 seconds when browser tab is active
+    this.syncTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.syncWithServer();
+      }
+    }, 6000);
+
+    // 3. Tab visibility and focus sync
+    window.addEventListener('focus', () => this.syncWithServer());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.syncWithServer();
+      }
+    });
+  }
+
+  public async syncWithServer(): Promise<void> {
+    if (typeof window === 'undefined' || this.isSyncing) return;
+    this.isSyncing = true;
+    try {
+      const res = await fetch('/api/state', { cache: 'no-store' });
+      if (res.ok) {
+        const serverState = await res.json();
+        if (serverState && Array.isArray(serverState.users)) {
+          // Keep current active session settings (user, role, language)
+          const currentUserId = this.state.currentUserId;
+          const currentRole = this.state.currentRole;
+          const language = this.state.language;
+
+          this.state = {
+            ...serverState,
+            currentUserId,
+            currentRole,
+            language
+          };
+          this.notify({ syncServer: false });
+        }
+      }
+    } catch {
+      // offline / local fallback
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  public scheduleServerSync() {
+    if (typeof window === 'undefined') return;
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+    }
+    this.syncDebounceTimer = setTimeout(async () => {
+      try {
+        await fetch('/api/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: this.state })
+        });
+      } catch (e) {
+        console.error('Failed to sync state to server:', e);
+      }
+    }, 350);
   }
 
   public onTaskCompleted(cb: (task: Task) => void) {
@@ -152,7 +225,7 @@ export class TrafficStore {
     };
   }
 
-  private notify() {
+  private notify(options?: { syncServer?: boolean }) {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.state));
@@ -161,6 +234,10 @@ export class TrafficStore {
       }
     }
     this.listeners.forEach((l) => l());
+
+    if (options?.syncServer !== false) {
+      this.scheduleServerSync();
+    }
   }
 
   // Auto Delay Scanner & Recurrence Engine
@@ -254,7 +331,7 @@ export class TrafficStore {
 
   public setLanguage(lang: 'en' | 'ar') {
     this.state.language = lang;
-    this.notify();
+    this.notify({ syncServer: false });
   }
 
   public setCurrentUser(userId: string) {
@@ -262,16 +339,16 @@ export class TrafficStore {
     if (user) {
       this.state.currentUserId = user.id;
       this.state.currentRole = user.role;
-      this.notify();
+      this.notify({ syncServer: false });
     }
   }
 
   public setCurrentRole(role: UserRole) {
     this.state.currentRole = role;
-    this.notify();
+    this.notify({ syncServer: false });
   }
 
-  public updateUser(userId: string, updates: Partial<User>) {
+  public async updateUser(userId: string, updates: Partial<User>) {
     const userIndex = this.state.users.findIndex((u) => u.id === userId);
     if (userIndex === -1) return;
 
@@ -304,6 +381,29 @@ export class TrafficStore {
     }
 
     this.notify();
+
+    // Directly call the dedicated user update API for fast photo upload processing
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            const idx = this.state.users.findIndex((u) => u.id === userId);
+            if (idx !== -1) {
+              this.state.users[idx] = { ...this.state.users[idx], ...data.user };
+              this.notify({ syncServer: false });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to update user on server:', err);
+      }
+    }
   }
 
   // Task CRUD

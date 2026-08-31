@@ -9,10 +9,13 @@ import {
   Globe, 
   AlertTriangle, 
   ChevronDown,
-  UserCheck
+  UserCheck,
+  Camera,
+  RefreshCw
 } from 'lucide-react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
+import { EditProfileModal } from '@/components/EditProfileModal';
 
 interface NavbarProps {
   store: TrafficStore;
@@ -36,6 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectUser,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const userDropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -222,11 +226,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Edit My Profile Button */}
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditProfile(true);
+                    setShowUserDropdown(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>{state.language === 'ar' ? 'تعديل صورتي وبياناتي' : 'Edit My Photo & Email'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-
+        {/* Edit Profile Modal */}
+        {showEditProfile && (
+          <EditProfileModal
+            store={store}
+            state={state}
+            user={currentUser}
+            onClose={() => setShowEditProfile(false)}
+          />
+        )}
 
         {/* Share Current View URL Button */}
         <button

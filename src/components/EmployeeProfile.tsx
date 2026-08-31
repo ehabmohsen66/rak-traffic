@@ -13,8 +13,10 @@ import {
   Download, 
   Calendar,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Pencil
 } from 'lucide-react';
+import { EditProfileModal } from '@/components/EditProfileModal';
 
 interface EmployeeProfileProps {
   store: TrafficStore;
@@ -40,6 +42,8 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
+
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const selectedUser = state.users.find((u) => u.id === activeUserId) || state.users[0];
 
@@ -192,23 +196,49 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
       {/* Header & Controls */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <img
-            src={selectedUser.avatar}
-            alt={selectedUser.name}
-            className="w-14 h-14 rounded-full object-cover border-2 border-indigo-500/40"
-          />
+          <div className="relative group">
+            <img
+              src={selectedUser.avatar}
+              alt={selectedUser.name}
+              className="w-14 h-14 rounded-full object-cover border-2 border-indigo-500/40"
+            />
+            <button
+              type="button"
+              onClick={() => setShowEditModal(true)}
+              className="absolute -bottom-1 -right-1 bg-white hover:bg-indigo-50 text-indigo-600 border border-slate-200 p-1 rounded-full shadow-xs transition-colors cursor-pointer"
+              title={state.language === 'ar' ? 'تعديل الصورة والبيانات' : 'Edit Photo & Profile'}
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-slate-900">{selectedUser.name}</h2>
               <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">
                 {selectedUser.department}
               </span>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline cursor-pointer ml-1"
+              >
+                <Pencil className="w-3 h-3" />
+                <span>{state.language === 'ar' ? 'تعديل' : 'Edit'}</span>
+              </button>
             </div>
-            <p className="text-xs text-slate-500">
-              Historical activity log and performance analytics (&quot;What did this person do last month?&quot;).
-            </p>
+            <div className="text-xs text-slate-500 font-mono mt-0.5">{selectedUser.email}</div>
           </div>
         </div>
+
+        {/* Edit Profile Modal */}
+        {showEditModal && (
+          <EditProfileModal
+            store={store}
+            state={state}
+            user={selectedUser}
+            onClose={() => setShowEditModal(false)}
+          />
+        )}
 
         {/* Controls */}
         <div className="flex items-center gap-3">

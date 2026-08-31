@@ -21,7 +21,16 @@
     "afterFiles": [],
     "fallback": []
   },
-  "dynamicRoutes": [],
+  "dynamicRoutes": [
+    {
+      "page": "/api/users/[id]",
+      "regex": "^/api/users/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/users/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
   "staticRoutes": [
     {
       "page": "/",
@@ -70,6 +79,18 @@
       "regex": "^/api/health(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/health(?:/)?$"
+    },
+    {
+      "page": "/api/state",
+      "regex": "^/api/state(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/state(?:/)?$"
+    },
+    {
+      "page": "/api/users/avatar",
+      "regex": "^/api/users/avatar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/users/avatar(?:/)?$"
     },
     {
       "page": "/icon.svg",

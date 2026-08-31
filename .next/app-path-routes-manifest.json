@@ -6,6 +6,9 @@
   "/api/email/send/route": "/api/email/send",
   "/api/email/test/route": "/api/email/test",
   "/api/health/route": "/api/health",
+  "/api/state/route": "/api/state",
+  "/api/users/[id]/route": "/api/users/[id]",
+  "/api/users/avatar/route": "/api/users/avatar",
   "/icon.svg/route": "/icon.svg",
   "/page": "/"
 }
