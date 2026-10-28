@@ -225,6 +225,9 @@ export const TaskList: React.FC<TaskListProps> = ({
                         )}
                         <span className="font-medium text-slate-700">{assigneeName}</span>
                       </div>
+                      <div className="text-[11px] text-slate-500 font-normal mt-1">
+                        Assigned by <span className="font-semibold text-slate-600">{managerName}</span>
+                      </div>
                     </td>
 
                     {/* Status with Quick Select */}
