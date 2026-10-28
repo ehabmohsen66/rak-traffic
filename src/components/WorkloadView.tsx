@@ -20,7 +20,14 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
   const t = translations[state.language];
 
   // Filter employees only (or all active team members)
-  const teamMembers = state.users.filter((u) => u.active);
+  const allMembers = state.users.filter((u) => u.active);
+
+  // Empty selection means "show everyone"
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const toggleMember = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const teamMembers =
+    selectedIds.length > 0 ? allMembers.filter((u) => selectedIds.includes(u.id)) : allMembers;
 
   const getEmployeeStats = (userId: string) => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -50,6 +57,18 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
       loadColor,
     };
   };
+
+  const combined = teamMembers.reduce(
+    (acc, m) => {
+      const s = getEmployeeStats(m.id);
+      return {
+        open: acc.open + s.openTasks,
+        urgentHigh: acc.urgentHigh + s.urgentHigh,
+        delayed: acc.delayed + s.delayedTasks,
+      };
+    },
+    { open: 0, urgentHigh: 0, delayed: 0 }
+  );
 
   // Generate current week dates (Mon-Sun)
   const getCurrentWeekDays = () => {
@@ -85,6 +104,73 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Employee multi-select filter */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900">
+            Select employees to compare
+            <span className="ml-2 text-xs font-normal text-slate-500">
+              {selectedIds.length === 0 ? 'Showing everyone' : `${selectedIds.length} selected`}
+            </span>
+          </h3>
+          <div className="flex items-center gap-3 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(allMembers.map((u) => u.id))}
+              className="text-indigo-600 hover:underline"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-slate-500 hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {allMembers.map((m) => {
+            const active = selectedIds.includes(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleMember(m.id)}
+                className={`flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-xs font-medium transition-colors ${
+                  active
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
+                }`}
+              >
+                <img src={m.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                {m.name}
+              </button>
+            );
+          })}
+        </div>
+        {selectedIds.length > 0 && (
+          <div className="grid grid-cols-3 gap-2 text-center pt-1">
+            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+              <div className="text-[10px] text-slate-500 font-medium">Combined Open</div>
+              <div className="text-base font-extrabold text-slate-800">{combined.open}</div>
+            </div>
+            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+              <div className="text-[10px] text-slate-500 font-medium">Combined Urgent/High</div>
+              <div className="text-base font-extrabold text-indigo-600">{combined.urgentHigh}</div>
+            </div>
+            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+              <div className="text-[10px] text-slate-500 font-medium">Combined Delayed</div>
+              <div className={`text-base font-extrabold ${combined.delayed > 0 ? 'text-rose-600' : 'text-slate-500'}`}>
+                {combined.delayed}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Team Member Workload Cards Grid */}
