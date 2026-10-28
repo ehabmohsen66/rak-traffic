@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/rak4dev/public_html/
+    - export DEPLOYPATH=/home/rak4dev/rak-traffic/
     - /bin/cp -R src $DEPLOYPATH
     - /bin/cp -R public $DEPLOYPATH
     - /bin/cp -R .next $DEPLOYPATH
@@ -15,8 +15,6 @@ deployment:
     - /bin/mkdir -p $DEPLOYPATH/public/uploads/avatars
     - /bin/mkdir -p $DEPLOYPATH/tmp
     - /bin/touch $DEPLOYPATH/tmp/restart.txt
-    - /bin/mkdir -p /home/rak4dev/repositories/rak-traffic/tmp
-    - /bin/touch /home/rak4dev/repositories/rak-traffic/tmp/restart.txt
 
 
 
