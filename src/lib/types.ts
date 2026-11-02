@@ -59,8 +59,24 @@ export function parseFlexibleDate(input: string): { iso: string; note?: string }
   if (!raw) return null;
 
   const lower = raw.toLowerCase();
+  if (
+    lower === '0.5' ||
+    lower === '0.5d' ||
+    lower === 'half' ||
+    lower === 'half day' ||
+    lower === 'half a day' ||
+    lower === '0.5 half day' ||
+    lower === '0.5 half a day' ||
+    lower === 'نصف يوم'
+  ) {
+    return { iso: getTodayIsoLocal(), note: '0.5d Half Day' };
+  }
   if (lower === 'today' || lower === 'اليوم') {
     return { iso: getTodayIsoLocal() };
+  }
+  if (/^(?:today|اليوم)\s+(.+)$/i.test(raw)) {
+    const m = /^(?:today|اليوم)\s+(.+)$/i.exec(raw);
+    return { iso: getTodayIsoLocal(), note: m?.[1]?.trim() };
   }
   if (lower === 'tomorrow' || lower === 'tmrw' || lower === 'غدا' || lower === 'غداً') {
     const d = new Date();
@@ -69,6 +85,15 @@ export function parseFlexibleDate(input: string): { iso: string; note?: string }
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return { iso: `${y}-${m}-${day}` };
+  }
+  if (/^(?:tomorrow|tmrw|غدا|غداً)\s+(.+)$/i.test(raw)) {
+    const m = /^(?:tomorrow|tmrw|غدا|غداً)\s+(.+)$/i.exec(raw);
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return { iso: `${y}-${mo}-${day}`, note: m?.[1]?.trim() };
   }
 
   // Match YYYY-MM-DD or YYYY/MM/DD (with optional trailing note after | or - or space)
@@ -145,6 +170,15 @@ export function getUpcomingOffDates(user?: User): string[] {
     .sort();
 }
 
+export function isHalfDayOffEntry(dateOrText: string): boolean {
+  if (!dateOrText) return false;
+  return /(?:^|[^\d])0\.5(?:d|\b)|½|\b1\/2\b|\bhalf(?:\s*-?\s*day)?\b|نصف\s*يوم|نصف/i.test(dateOrText);
+}
+
+export function getOffEntryWeight(dateOrText: string): number {
+  return isHalfDayOffEntry(dateOrText) ? 0.5 : 1;
+}
+
 export function formatOffDateShort(dateStr: string, lang: 'en' | 'ar' = 'en'): string {
   const parsed = parseFlexibleDate(dateStr);
   if (!parsed) return dateStr;
@@ -159,10 +193,18 @@ export function formatOffDateShort(dateStr: string, lang: 'en' | 'ar' = 'en'): s
   return parsed.note ? `${formatted} (${parsed.note})` : formatted;
 }
 
-export function expandDateRange(startStr: string, endStr?: string): string[] {
+export function expandDateRange(startStr: string, endStr?: string, isHalfDay = false): string[] {
   const rawStart = startStr.trim();
   const rawEnd = (endStr || '').trim();
   if (!rawStart) return [];
+
+  const halfDayTag = '0.5d Half Day';
+  const ensureHalfDayNote = (note?: string): string | undefined => {
+    const clean = (note || '').trim();
+    if (!isHalfDay) return clean || undefined;
+    if (clean && isHalfDayOffEntry(clean)) return clean;
+    return clean ? `${clean} • ${halfDayTag}` : halfDayTag;
+  };
 
   const startParsed = parseFlexibleDate(rawStart);
   const endParsed = rawEnd ? parseFlexibleDate(rawEnd) : null;
@@ -170,7 +212,7 @@ export function expandDateRange(startStr: string, endStr?: string): string[] {
   if (startParsed && endParsed) {
     const startIso = startParsed.iso;
     const endIso = endParsed.iso;
-    const note = startParsed.note || endParsed.note;
+    const note = ensureHalfDayNote(startParsed.note || endParsed.note);
     if (endIso <= startIso) {
       return [note ? `${startIso}|${note}` : startIso];
     }
@@ -194,14 +236,17 @@ export function expandDateRange(startStr: string, endStr?: string): string[] {
   }
 
   if (startParsed) {
-    const combinedNote = [startParsed.note, rawEnd].filter(Boolean).join(' - ');
-    return [combinedNote ? `${startParsed.iso}|${combinedNote}` : startParsed.iso];
+    const combinedRaw = [startParsed.note, rawEnd].filter(Boolean).join(' - ');
+    const finalNote = ensureHalfDayNote(combinedRaw);
+    return [finalNote ? `${startParsed.iso}|${finalNote}` : startParsed.iso];
   }
 
-  if (rawEnd) {
-    return [`${rawStart} - ${rawEnd}`];
+  // Pure custom text (e.g. "0.5 half day" or "Tomorrow afternoon 0.5")
+  const combinedText = rawEnd ? `${rawStart} - ${rawEnd}` : rawStart;
+  if (isHalfDay && !isHalfDayOffEntry(combinedText)) {
+    return [`${combinedText} (${halfDayTag})`];
   }
-  return [rawStart];
+  return [combinedText];
 }
 
 export function getAssigneeOffAlert(

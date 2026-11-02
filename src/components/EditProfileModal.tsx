@@ -10,6 +10,7 @@ import {
   extractIsoDate,
   expandDateRange,
   getTodayIsoLocal,
+  getOffEntryWeight,
 } from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
@@ -48,12 +49,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [department, setDepartment] = useState(user.department);
   const [avatar, setAvatar] = useState(user.avatar);
   const [workStatus, setWorkStatus] = useState<UserWorkStatus>(user.workStatus || 'working');
-  const [remainingHolidays, setRemainingHolidays] = useState<number>(user.remainingHolidays ?? 21);
+  const [remainingHolidays, setRemainingHolidays] = useState<string>(String(user.remainingHolidays ?? 21));
   const [plannedOffDates, setPlannedOffDates] = useState<string[]>(
     getUpcomingOffDates(user)
   );
   const [newOffStart, setNewOffStart] = useState<string>('');
   const [newOffEnd, setNewOffEnd] = useState<string>('');
+  const [newOffHalfDay, setNewOffHalfDay] = useState<boolean>(false);
   const startPickerRef = React.useRef<HTMLInputElement>(null);
   const endPickerRef = React.useRef<HTMLInputElement>(null);
   const [avatarMode, setAvatarMode] = useState<'upload' | 'url'>('upload');
@@ -106,13 +108,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleAddOffRange = () => {
     if (!newOffStart.trim()) return;
-    const range = expandDateRange(newOffStart, newOffEnd);
+    const range = expandDateRange(newOffStart, newOffEnd, newOffHalfDay);
     const existing = new Set(plannedOffDates);
-    let added = 0;
+    let addedDays = 0;
     range.forEach((d) => {
       if (!existing.has(d)) {
         existing.add(d);
-        added++;
+        addedDays += getOffEntryWeight(d);
       }
     });
     const nextDates = Array.from(existing).sort();
@@ -120,11 +122,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     if (nextDates.some((d) => extractIsoDate(d) === getTodayIsoLocal())) {
       setWorkStatus('off');
     }
-    if (added > 0) {
-      setRemainingHolidays((prev) => Math.max(0, prev - added));
+    if (addedDays > 0) {
+      setRemainingHolidays((prev) => {
+        const cur = parseFloat(String(prev).replace(',', '.')) || 0;
+        return String(Math.max(0, Math.round((cur - addedDays) * 100) / 100));
+      });
     }
     setNewOffStart('');
     setNewOffEnd('');
+    setNewOffHalfDay(false);
   };
 
   const handleRemoveOffDate = (dateStr: string) => {
@@ -134,7 +140,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     if (extractIsoDate(dateStr) === getTodayIsoLocal()) {
       setWorkStatus('working');
     }
-    setRemainingHolidays((prev) => prev + 1);
+    const weight = getOffEntryWeight(dateStr);
+    setRemainingHolidays((prev) => {
+      const cur = parseFloat(String(prev).replace(',', '.')) || 0;
+      return String(Math.round((cur + weight) * 100) / 100);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,6 +154,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     setSaving(true);
     setError(null);
 
+    const parsedHolidays = parseFloat(String(remainingHolidays).replace(',', '.'));
+    const cleanHolidays = isNaN(parsedHolidays)
+      ? 0
+      : Math.max(0, Math.round(parsedHolidays * 100) / 100);
+
     try {
       await store.updateUser(user.id, {
         name: name.trim(),
@@ -151,7 +166,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         department: department.trim(),
         avatar: avatar.trim(),
         workStatus,
-        remainingHolidays: isNaN(Number(remainingHolidays)) ? 0 : Number(remainingHolidays),
+        remainingHolidays: cleanHolidays,
         plannedOffDates
       });
 
@@ -381,7 +396,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Remaining Holidays (Manual input) */}
+          {/* Remaining Holidays (Manual input, supports 0.5 half days) */}
           <div>
             <label className="block text-slate-700 font-semibold mb-1 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -389,21 +404,36 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <span>{t.remainingHolidays}</span>
               </span>
               <span className="text-[11px] font-normal text-slate-400">
-                {state.language === 'ar' ? 'إدخال يدوي بالأيام' : 'Manual days count'}
+                {state.language === 'ar' ? 'إدخال يدوي (يدعم 0.5 نصف يوم)' : 'Manual days count (supports 0.5)'}
               </span>
             </label>
-            <div className="relative">
-              <input
-                type="number"
-                min="0"
-                max="365"
-                value={remainingHolidays}
-                onChange={(e) => setRemainingHolidays(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 pr-16 text-slate-900 font-bold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              />
-              <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
-                {t.holidaysLeft}
-              </span>
+            <div className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="365"
+                  value={remainingHolidays}
+                  onChange={(e) => setRemainingHolidays(e.target.value)}
+                  placeholder="e.g. 6.5 or 0.5"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 pr-16 text-slate-900 font-bold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+                <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
+                  {t.holidaysLeft}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const cur = parseFloat(String(remainingHolidays).replace(',', '.')) || 0;
+                  setRemainingHolidays(String(Math.max(0, Math.round((cur - 0.5) * 100) / 100)));
+                }}
+                className="px-2.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold cursor-pointer shrink-0"
+                title={state.language === 'ar' ? 'خصم نصف يوم (-0.5)' : 'Deduct half a day (-0.5)'}
+              >
+                -0.5
+              </button>
             </div>
           </div>
 
@@ -420,7 +450,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </label>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[140px] flex items-center">
+              <div className="relative flex-1 min-w-[130px] flex items-center">
                 <input
                   type="text"
                   value={newOffStart}
@@ -431,7 +461,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       handleAddOffRange();
                     }
                   }}
-                  placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو نص' : 'dd/mm/yyyy or text'}
+                  placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو 0.5' : 'dd/mm/yyyy or 0.5'}
                   className="w-full bg-white border border-slate-300 rounded-xl ps-2.5 pe-8 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
                 />
                 <button
@@ -462,7 +492,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </button>
               </div>
               <span className="text-xs text-slate-400">{state.language === 'ar' ? 'إلى' : 'to'}</span>
-              <div className="relative flex-1 min-w-[140px] flex items-center">
+              <div className="relative flex-1 min-w-[130px] flex items-center">
                 <input
                   type="text"
                   value={newOffEnd}
@@ -473,7 +503,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       handleAddOffRange();
                     }
                   }}
-                  placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو ملاحظة (اختياري)' : 'dd/mm/yyyy or note (opt)'}
+                  placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو 0.5 نصف يوم' : 'dd/mm/yyyy or 0.5 note'}
                   className="w-full bg-white border border-slate-300 rounded-xl ps-2.5 pe-8 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
                 />
                 <button
@@ -503,6 +533,32 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   />
                 </button>
               </div>
+
+              <div className="inline-flex items-center rounded-xl border border-slate-300 bg-slate-50 p-0.5 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setNewOffHalfDay(false)}
+                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
+                    !newOffHalfDay
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {state.language === 'ar' ? 'يوم (1)' : '1d Full'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewOffHalfDay(true)}
+                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
+                    newOffHalfDay
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {state.language === 'ar' ? '0.5 نصف يوم' : '0.5 Half Day'}
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handleAddOffRange}

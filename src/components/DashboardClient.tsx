@@ -14,6 +14,8 @@ import {
   extractIsoDate,
   expandDateRange,
   getTodayIsoLocal,
+  isHalfDayOffEntry,
+  getOffEntryWeight,
 } from '@/lib/types';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar, MainTab } from '@/components/Sidebar';
@@ -93,29 +95,36 @@ export default function DashboardClient() {
   // Edit Profile Modal State
   const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
   const [editingHolidays, setEditingHolidays] = useState(false);
-  const [holidayInputVal, setHolidayInputVal] = useState<number>(21);
+  const [holidayInputVal, setHolidayInputVal] = useState<string>('21');
   const [addingOffDate, setAddingOffDate] = useState(false);
   const [offStartDate, setOffStartDate] = useState<string>('');
   const [offEndDate, setOffEndDate] = useState<string>('');
+  const [offIsHalfDay, setOffIsHalfDay] = useState<boolean>(false);
   const [editingOffOriginal, setEditingOffOriginal] = useState<string | null>(null);
   const offStartPickerRef = React.useRef<HTMLInputElement>(null);
   const offEndPickerRef = React.useRef<HTMLInputElement>(null);
 
-  const handleAddPlannedOffDates = (user: User, startStr: string, endStr?: string) => {
+  const handleAddPlannedOffDates = (
+    user: User,
+    startStr: string,
+    endStr?: string,
+    isHalfDay?: boolean
+  ) => {
     if (!startStr.trim()) return;
-    const range = expandDateRange(startStr, endStr);
+    const range = expandDateRange(startStr, endStr, Boolean(isHalfDay));
     const baseList = (user.plannedOffDates || []).filter((d) => d !== editingOffOriginal);
     const existing = new Set(baseList);
-    let newlyAdded = 0;
+    let newlyAddedDays = 0;
     range.forEach((d) => {
       if (!existing.has(d)) {
         existing.add(d);
-        newlyAdded++;
+        newlyAddedDays += getOffEntryWeight(d);
       }
     });
     const updatedDates = Array.from(existing).sort();
-    const currentRemaining = (user.remainingHolidays ?? 21) + (editingOffOriginal ? 1 : 0);
-    const nextRemaining = Math.max(0, currentRemaining - newlyAdded);
+    const restoredWeight = editingOffOriginal ? getOffEntryWeight(editingOffOriginal) : 0;
+    const currentRemaining = (user.remainingHolidays ?? 21) + restoredWeight;
+    const nextRemaining = Math.max(0, Math.round((currentRemaining - newlyAddedDays) * 100) / 100);
     const today = getTodayIsoLocal();
     const isOffTodayNow = updatedDates.some((d) => extractIsoDate(d) === today);
     store.updateUser(user.id, {
@@ -126,6 +135,7 @@ export default function DashboardClient() {
     setAddingOffDate(false);
     setOffStartDate('');
     setOffEndDate('');
+    setOffIsHalfDay(false);
     setEditingOffOriginal(null);
   };
 
@@ -134,11 +144,13 @@ export default function DashboardClient() {
     if (!existing.includes(dateToRemove)) return;
     const updatedDates = existing.filter((d) => d !== dateToRemove);
     const currentRemaining = user.remainingHolidays ?? 21;
+    const weight = getOffEntryWeight(dateToRemove);
+    const nextRemaining = Math.round((currentRemaining + weight) * 100) / 100;
     const today = getTodayIsoLocal();
     const isOffTodayNow = updatedDates.some((d) => extractIsoDate(d) === today);
     store.updateUser(user.id, {
       plannedOffDates: updatedDates,
-      remainingHolidays: currentRemaining + 1,
+      remainingHolidays: nextRemaining,
       workStatus: isOffTodayNow ? 'off' : 'working',
     });
   };
@@ -397,15 +409,15 @@ export default function DashboardClient() {
                           </span>
                         </span>
 
-                        {/* Remaining Holidays Pill (Manual edit inline or click) */}
+                        {/* Remaining Holidays Pill (Manual edit inline or click, supports 0.5 half days) */}
                         {!editingHolidays ? (
                           <div
                             onClick={() => {
                               setEditingHolidays(true);
-                              setHolidayInputVal(currentUser.remainingHolidays ?? 21);
+                              setHolidayInputVal(String(currentUser.remainingHolidays ?? 21));
                             }}
                             className="group inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white hover:bg-indigo-50/50 text-slate-700 border border-slate-200 hover:border-indigo-300 text-[11px] font-semibold cursor-pointer shadow-2xs transition-all"
-                            title={state.language === 'ar' ? 'انقر لتعديل رصيد الإجازات المتبقية يدوياً' : 'Click to manually edit remaining holidays'}
+                            title={state.language === 'ar' ? 'انقر لتعديل رصيد الإجازات المتبقية يدوياً (يدعم 0.5 نصف يوم)' : 'Click to manually edit remaining holidays (supports 0.5 half days)'}
                           >
                             <span>🏖️</span>
                             <span className="text-slate-500">{t.remainingHolidays}:</span>
@@ -417,7 +429,9 @@ export default function DashboardClient() {
                           <form
                             onSubmit={(e) => {
                               e.preventDefault();
-                              store.updateUser(currentUser.id, { remainingHolidays: Number(holidayInputVal) });
+                              const parsed = parseFloat(holidayInputVal.replace(',', '.'));
+                              const cleanVal = isNaN(parsed) ? 0 : Math.max(0, Math.round(parsed * 100) / 100);
+                              store.updateUser(currentUser.id, { remainingHolidays: cleanVal });
                               setEditingHolidays(false);
                             }}
                             className="inline-flex items-center gap-1 bg-white p-0.5 px-2 rounded-full border border-indigo-400 shadow-xs"
@@ -425,13 +439,26 @@ export default function DashboardClient() {
                             <span>🏖️</span>
                             <input
                               type="number"
+                              step="0.5"
                               min="0"
                               max="365"
                               autoFocus
                               value={holidayInputVal}
-                              onChange={(e) => setHolidayInputVal(Math.max(0, parseInt(e.target.value) || 0))}
-                              className="w-12 text-xs font-black text-indigo-700 bg-transparent text-center focus:outline-none"
+                              onChange={(e) => setHolidayInputVal(e.target.value)}
+                              placeholder="0.5"
+                              className="w-14 text-xs font-black text-indigo-700 bg-transparent text-center focus:outline-none"
                             />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = parseFloat(holidayInputVal.replace(',', '.')) || 0;
+                                setHolidayInputVal(String(Math.max(0, Math.round((cur - 0.5) * 100) / 100)));
+                              }}
+                              className="px-1.5 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] font-extrabold cursor-pointer"
+                              title={state.language === 'ar' ? 'خصم نصف يوم (-0.5)' : 'Deduct half a day (-0.5)'}
+                            >
+                              -0.5
+                            </button>
                             <span className="text-[10px] text-slate-400">{t.holidaysLeft}</span>
                             <button
                               type="submit"
@@ -465,6 +492,7 @@ export default function DashboardClient() {
                       <div className="flex items-center gap-1.5 flex-wrap mt-2">
                         {getUpcomingOffDates(currentUser).map((dateStr) => {
                           const isToday = extractIsoDate(dateStr) === getTodayIsoLocal();
+                          const isHalf = isHalfDayOffEntry(dateStr);
                           return (
                             <span
                               key={dateStr}
@@ -484,6 +512,7 @@ export default function DashboardClient() {
                                   const notePart = pipeIdx !== -1 ? dateStr.slice(pipeIdx + 1) : '';
                                   setOffStartDate(iso ? formatIsoToDdMmYyyy(iso) : dateStr);
                                   setOffEndDate(notePart);
+                                  setOffIsHalfDay(isHalfDayOffEntry(dateStr));
                                 }}
                                 className="hover:underline cursor-pointer text-start"
                                 title={state.language === 'ar' ? 'انقر لتعديل يوم الإجازة يدوياً' : 'Click to edit day off text or date'}
@@ -494,7 +523,11 @@ export default function DashboardClient() {
                                 type="button"
                                 onClick={() => handleRemovePlannedOffDate(currentUser, dateStr)}
                                 className="hover:text-rose-600 text-slate-400 font-black ml-0.5 cursor-pointer"
-                                title={state.language === 'ar' ? 'إلغاء يوم الإجازة واسترجاع الرصيد' : 'Remove day off & restore 1 holiday'}
+                                title={
+                                  state.language === 'ar'
+                                    ? `إلغاء الإجازة واسترجاع ${isHalf ? '0.5' : '1'} يوم`
+                                    : `Remove & restore ${isHalf ? '0.5' : '1'} holiday`
+                                }
                               >
                                 ✕
                               </button>
@@ -510,6 +543,7 @@ export default function DashboardClient() {
                               setAddingOffDate(true);
                               setOffStartDate(formatIsoToDdMmYyyy(getTodayIsoLocal()));
                               setOffEndDate('');
+                              setOffIsHalfDay(false);
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
                           >
@@ -519,7 +553,7 @@ export default function DashboardClient() {
                           <form
                             onSubmit={(e) => {
                               e.preventDefault();
-                              handleAddPlannedOffDates(currentUser, offStartDate, offEndDate);
+                              handleAddPlannedOffDates(currentUser, offStartDate, offEndDate, offIsHalfDay);
                             }}
                             className="inline-flex items-center gap-1.5 bg-white p-1 px-2.5 rounded-xl border border-indigo-400 shadow-xs flex-wrap"
                           >
@@ -533,7 +567,7 @@ export default function DashboardClient() {
                                 autoFocus
                                 value={offStartDate}
                                 onChange={(e) => setOffStartDate(e.target.value)}
-                                placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو نص' : 'dd/mm/yyyy or text'}
+                                placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو 0.5' : 'dd/mm/yyyy or 0.5'}
                                 className="w-36 text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg ps-2 pe-6 py-0.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                               />
                               <button
@@ -571,7 +605,7 @@ export default function DashboardClient() {
                                 type="text"
                                 value={offEndDate}
                                 onChange={(e) => setOffEndDate(e.target.value)}
-                                placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو ملاحظة' : 'dd/mm/yyyy or note'}
+                                placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو 0.5 نصف يوم' : 'dd/mm/yyyy or 0.5 note'}
                                 className="w-36 text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg ps-2 pe-6 py-0.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                               />
                               <button
@@ -601,6 +635,33 @@ export default function DashboardClient() {
                                 />
                               </button>
                             </div>
+
+                            {/* Full Day (1d) vs Half Day (0.5d) Selector */}
+                            <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[10px] font-bold">
+                              <button
+                                type="button"
+                                onClick={() => setOffIsHalfDay(false)}
+                                className={`px-1.5 py-0.5 rounded-md transition-colors cursor-pointer ${
+                                  !offIsHalfDay
+                                    ? 'bg-indigo-600 text-white shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                {state.language === 'ar' ? 'يوم كامل (1)' : '1d Full'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOffIsHalfDay(true)}
+                                className={`px-1.5 py-0.5 rounded-md transition-colors cursor-pointer ${
+                                  offIsHalfDay
+                                    ? 'bg-indigo-600 text-white shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                {state.language === 'ar' ? '0.5 نصف يوم' : '0.5 Half Day'}
+                              </button>
+                            </div>
+
                             <button
                               type="submit"
                               className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer"
@@ -618,6 +679,7 @@ export default function DashboardClient() {
                               onClick={() => {
                                 setAddingOffDate(false);
                                 setEditingOffOriginal(null);
+                                setOffIsHalfDay(false);
                               }}
                               className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer"
                             >
