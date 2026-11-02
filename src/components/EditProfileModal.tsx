@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { User, UserWorkStatus } from '@/lib/types';
+import {
+  type User,
+  type UserWorkStatus,
+  formatOffDateShort,
+  expandDateRange,
+  getTodayIsoLocal,
+} from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
 import { 
@@ -40,6 +46,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [avatar, setAvatar] = useState(user.avatar);
   const [workStatus, setWorkStatus] = useState<UserWorkStatus>(user.workStatus || 'working');
   const [remainingHolidays, setRemainingHolidays] = useState<number>(user.remainingHolidays ?? 21);
+  const [plannedOffDates, setPlannedOffDates] = useState<string[]>(
+    (user.plannedOffDates || []).filter((d) => d >= getTodayIsoLocal()).sort()
+  );
+  const [newOffStart, setNewOffStart] = useState<string>('');
+  const [newOffEnd, setNewOffEnd] = useState<string>('');
   const [avatarMode, setAvatarMode] = useState<'upload' | 'url'>('upload');
   const [customUrl, setCustomUrl] = useState('');
   const [saving, setSaving] = useState(false);
@@ -88,6 +99,31 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
+  const handleAddOffRange = () => {
+    if (!newOffStart) return;
+    const range = expandDateRange(newOffStart, newOffEnd);
+    const existing = new Set(plannedOffDates);
+    let added = 0;
+    range.forEach((d) => {
+      if (!existing.has(d)) {
+        existing.add(d);
+        added++;
+      }
+    });
+    setPlannedOffDates(Array.from(existing).sort());
+    if (added > 0) {
+      setRemainingHolidays((prev) => Math.max(0, prev - added));
+    }
+    setNewOffStart('');
+    setNewOffEnd('');
+  };
+
+  const handleRemoveOffDate = (dateStr: string) => {
+    if (!plannedOffDates.includes(dateStr)) return;
+    setPlannedOffDates((prev) => prev.filter((d) => d !== dateStr));
+    setRemainingHolidays((prev) => prev + 1);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !name.trim()) return;
@@ -102,7 +138,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         department: department.trim(),
         avatar: avatar.trim(),
         workStatus,
-        remainingHolidays: isNaN(Number(remainingHolidays)) ? 0 : Number(remainingHolidays)
+        remainingHolidays: isNaN(Number(remainingHolidays)) ? 0 : Number(remainingHolidays),
+        plannedOffDates
       });
 
       setSuccess(true);
@@ -355,6 +392,65 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 {t.holidaysLeft}
               </span>
             </div>
+          </div>
+
+          {/* Scheduled Days Off / Upcoming Leave Dates */}
+          <div className="space-y-2">
+            <label className="block text-slate-700 font-semibold flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{state.language === 'ar' ? 'أيام الإجازة المجدولة (مثلاً الجمعة القادمة)' : 'Scheduled Days Off (e.g. Next Friday)'}</span>
+              </span>
+              <span className="text-[11px] font-normal text-slate-400">
+                {plannedOffDates.length} {state.language === 'ar' ? 'أيام' : 'upcoming'}
+              </span>
+            </label>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="date"
+                min={getTodayIsoLocal()}
+                value={newOffStart}
+                onChange={(e) => setNewOffStart(e.target.value)}
+                className="flex-1 min-w-[130px] bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
+              />
+              <span className="text-xs text-slate-400">{state.language === 'ar' ? 'إلى' : 'to'}</span>
+              <input
+                type="date"
+                min={newOffStart || getTodayIsoLocal()}
+                value={newOffEnd}
+                onChange={(e) => setNewOffEnd(e.target.value)}
+                placeholder="Optional"
+                className="flex-1 min-w-[130px] bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={handleAddOffRange}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                + {state.language === 'ar' ? 'إضافة' : 'Add'}
+              </button>
+            </div>
+
+            {plannedOffDates.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {plannedOffDates.map((d) => (
+                  <span
+                    key={d}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold"
+                  >
+                    <span>📅 {formatOffDateShort(d, state.language)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOffDate(d)}
+                      className="text-amber-700 hover:text-rose-600 font-black cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions */}

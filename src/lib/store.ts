@@ -117,7 +117,8 @@ export class TrafficStore {
                 department: savedUser.department || initUser.department,
                 role: savedUser.role || initUser.role,
                 workStatus: savedUser.workStatus || initUser.workStatus || 'working',
-                remainingHolidays: typeof savedUser.remainingHolidays === 'number' ? savedUser.remainingHolidays : (initUser.remainingHolidays ?? 21)
+                remainingHolidays: typeof savedUser.remainingHolidays === 'number' ? savedUser.remainingHolidays : (initUser.remainingHolidays ?? 21),
+                plannedOffDates: Array.isArray(savedUser.plannedOffDates) ? savedUser.plannedOffDates : (initUser.plannedOffDates || [])
               } : initUser;
             });
             // Also keep any custom created users

@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Task, TaskStatus, Priority, User } from '@/lib/types';
+import {
+  Task,
+  TaskStatus,
+  Priority,
+  User,
+  getUpcomingOffDates,
+  formatOffDateShort,
+  getEffectiveWorkStatus,
+} from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
 import { 
@@ -251,10 +259,35 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 onChange={(e) => setAssignedToId(e.target.value)}
                 className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               >
-                {state.users.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.department})</option>
-                ))}
+                {state.users.map((u) => {
+                  const upcoming = getUpcomingOffDates(u);
+                  const offSuffix = upcoming.length > 0 ? ` — 📅 Off: ${formatOffDateShort(upcoming[0], state.language)}` : '';
+                  return (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.department}){offSuffix}
+                    </option>
+                  );
+                })}
               </select>
+              {(() => {
+                const selUser = state.users.find((u) => u.id === assignedToId);
+                if (!selUser) return null;
+                const upcoming = getUpcomingOffDates(selUser);
+                const isOffOnDue = upcoming.includes(dueDate);
+                if (upcoming.length === 0 && getEffectiveWorkStatus(selUser) === 'working') return null;
+                return (
+                  <div className={`mt-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 flex-wrap ${
+                    isOffOnDue ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    <span>{isOffOnDue ? '⚠️ Scheduled OFF on Due Date!' : '📅 Scheduled Off Days:'}</span>
+                    {upcoming.map((d) => (
+                      <span key={d} className="underline">
+                        {formatOffDateShort(d, state.language)}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

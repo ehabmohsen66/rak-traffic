@@ -3,7 +3,14 @@
 import React, { useState } from 'react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
-import { User, Task, AuditLog } from '@/lib/types';
+import {
+  User,
+  Task,
+  AuditLog,
+  getEffectiveWorkStatus,
+  getUpcomingOffDates,
+  formatOffDateShort,
+} from '@/lib/types';
 import { 
   UserCheck, 
   CheckCircle2, 
@@ -230,20 +237,26 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
             
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
-                selectedUser.workStatus === 'off'
+                getEffectiveWorkStatus(selectedUser) === 'off'
                   ? 'bg-rose-50 text-rose-700 border-rose-200'
-                  : selectedUser.workStatus === 'on_leave'
+                  : getEffectiveWorkStatus(selectedUser) === 'on_leave'
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : 'bg-emerald-50 text-emerald-700 border-emerald-200'
               }`}>
-                <span>{selectedUser.workStatus === 'off' ? '🔴' : selectedUser.workStatus === 'on_leave' ? '🌴' : '🟢'}</span>
-                <span>{selectedUser.workStatus === 'off' ? t.workStatusOff : selectedUser.workStatus === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
+                <span>{getEffectiveWorkStatus(selectedUser) === 'off' ? '🔴' : getEffectiveWorkStatus(selectedUser) === 'on_leave' ? '🌴' : '🟢'}</span>
+                <span>{getEffectiveWorkStatus(selectedUser) === 'off' ? t.workStatusOff : getEffectiveWorkStatus(selectedUser) === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
               </span>
 
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700 flex items-center gap-1">
                 <span>🏖️</span>
                 <span>{selectedUser.remainingHolidays ?? 21} {t.holidaysLeft}</span>
               </span>
+
+              {getUpcomingOffDates(selectedUser).map((d) => (
+                <span key={d} className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                  📅 Off: {formatOffDateShort(d, state.language)}
+                </span>
+              ))}
             </div>
           </div>
         </div>

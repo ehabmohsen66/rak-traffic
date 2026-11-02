@@ -3,7 +3,13 @@
 import React from 'react';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
-import { User, Task } from '@/lib/types';
+import {
+  User,
+  Task,
+  getEffectiveWorkStatus,
+  getUpcomingOffDates,
+  formatOffDateShort,
+} from '@/lib/types';
 import { BarChart3, AlertTriangle, CheckCircle2, UserCheck, Flame } from 'lucide-react';
 
 interface WorkloadViewProps {
@@ -150,7 +156,7 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                 <div className="relative">
                   <img src={m.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
                   <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
-                    m.workStatus === 'off' ? 'bg-rose-500' : m.workStatus === 'on_leave' ? 'bg-amber-500' : 'bg-emerald-500'
+                    getEffectiveWorkStatus(m) === 'off' ? 'bg-rose-500' : getEffectiveWorkStatus(m) === 'on_leave' ? 'bg-amber-500' : 'bg-emerald-500'
                   }`} />
                 </div>
                 <span>{m.name}</span>
@@ -206,20 +212,25 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">{member.name}</h3>
                     <span className="text-[11px] text-slate-500">{member.department}</span>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 border ${
-                        member.workStatus === 'off'
+                        getEffectiveWorkStatus(member) === 'off'
                           ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : member.workStatus === 'on_leave'
+                          : getEffectiveWorkStatus(member) === 'on_leave'
                           ? 'bg-amber-50 text-amber-700 border-amber-200'
                           : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       }`}>
-                        <span>{member.workStatus === 'off' ? '🔴' : member.workStatus === 'on_leave' ? '🌴' : '🟢'}</span>
-                        <span>{member.workStatus === 'off' ? t.workStatusOff : member.workStatus === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
+                        <span>{getEffectiveWorkStatus(member) === 'off' ? '🔴' : getEffectiveWorkStatus(member) === 'on_leave' ? '🌴' : '🟢'}</span>
+                        <span>{getEffectiveWorkStatus(member) === 'off' ? t.workStatusOff : getEffectiveWorkStatus(member) === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
                       </span>
                       <span className="text-[10px] text-slate-500 font-medium">
                         🏖️ {member.remainingHolidays ?? 21}d {t.holidaysLeft}
                       </span>
+                      {getUpcomingOffDates(member).map((d) => (
+                        <span key={d} className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                          📅 Off: {formatOffDateShort(d, state.language)}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -312,16 +323,26 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                       (t) => t.assignedToId === member.id && t.dueDate === dateStr
                     );
                     const count = dayTasks.length;
+                    const isScheduledOff = member.plannedOffDates?.includes(dateStr);
 
                     let bgCell = 'bg-slate-50 text-slate-400';
-                    if (count >= 3) bgCell = 'bg-rose-50 text-rose-700 font-bold border border-rose-200';
-                    else if (count === 2) bgCell = 'bg-amber-50 text-amber-700 font-bold border border-amber-200';
-                    else if (count === 1) bgCell = 'bg-sky-50 text-sky-700 font-semibold border border-sky-200';
+                    if (isScheduledOff) {
+                      bgCell = 'bg-rose-100 text-rose-800 font-extrabold border border-rose-300';
+                    } else if (count >= 3) {
+                      bgCell = 'bg-rose-50 text-rose-700 font-bold border border-rose-200';
+                    } else if (count === 2) {
+                      bgCell = 'bg-amber-50 text-amber-700 font-bold border border-amber-200';
+                    } else if (count === 1) {
+                      bgCell = 'bg-sky-50 text-sky-700 font-semibold border border-sky-200';
+                    }
 
                     return (
                       <td key={dateStr} className="py-3 px-3 text-center">
-                        <div className={`mx-auto w-8 h-8 rounded-lg flex items-center justify-center text-xs ${bgCell}`}>
-                          {count > 0 ? count : '—'}
+                        <div
+                          className={`mx-auto min-w-8 px-1.5 h-8 rounded-lg flex items-center justify-center text-[10px] ${bgCell}`}
+                          title={isScheduledOff ? `${member.name} is scheduled OFF on ${dateStr}` : undefined}
+                        >
+                          {isScheduledOff ? (count > 0 ? `${count}•OFF` : 'OFF') : count > 0 ? count : '—'}
                         </div>
                       </td>
                     );

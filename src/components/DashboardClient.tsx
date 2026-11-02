@@ -3,7 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { TrafficStore, store } from '@/lib/store';
 import { translations } from '@/lib/i18n';
-import type { Task, User, UserWorkStatus } from '@/lib/types';
+import {
+  type Task,
+  type User,
+  type UserWorkStatus,
+  getEffectiveWorkStatus,
+  getUpcomingOffDates,
+  formatOffDateShort,
+  expandDateRange,
+  getTodayIsoLocal,
+} from '@/lib/types';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar, MainTab } from '@/components/Sidebar';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -83,6 +92,54 @@ export default function DashboardClient() {
   const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
   const [editingHolidays, setEditingHolidays] = useState(false);
   const [holidayInputVal, setHolidayInputVal] = useState<number>(21);
+  const [addingOffDate, setAddingOffDate] = useState(false);
+  const [offStartDate, setOffStartDate] = useState<string>('');
+  const [offEndDate, setOffEndDate] = useState<string>('');
+
+  const getNextFridayIso = () => {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun .. 5=Fri .. 6=Sat
+    const daysUntilFri = (5 - day + 7) % 7 || 7;
+    const nextFri = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFri);
+    const y = nextFri.getFullYear();
+    const m = String(nextFri.getMonth() + 1).padStart(2, '0');
+    const d = String(nextFri.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const handleAddPlannedOffDates = (user: User, startStr: string, endStr?: string) => {
+    if (!startStr) return;
+    const range = expandDateRange(startStr, endStr);
+    const existing = new Set(user.plannedOffDates || []);
+    let newlyAdded = 0;
+    range.forEach((d) => {
+      if (!existing.has(d)) {
+        existing.add(d);
+        newlyAdded++;
+      }
+    });
+    const updatedDates = Array.from(existing).sort();
+    const currentRemaining = user.remainingHolidays ?? 21;
+    const nextRemaining = Math.max(0, currentRemaining - newlyAdded);
+    store.updateUser(user.id, {
+      plannedOffDates: updatedDates,
+      remainingHolidays: nextRemaining,
+    });
+    setAddingOffDate(false);
+    setOffStartDate('');
+    setOffEndDate('');
+  };
+
+  const handleRemovePlannedOffDate = (user: User, dateToRemove: string) => {
+    const existing = user.plannedOffDates || [];
+    if (!existing.includes(dateToRemove)) return;
+    const updatedDates = existing.filter((d) => d !== dateToRemove);
+    const currentRemaining = user.remainingHolidays ?? 21;
+    store.updateUser(user.id, {
+      plannedOffDates: updatedDates,
+      remainingHolidays: currentRemaining + 1,
+    });
+  };
 
   const isInitialMount = React.useRef(true);
 
@@ -306,16 +363,16 @@ export default function DashboardClient() {
                         {/* Work Status Dropdown (Working / Off / On Leave) */}
                         <div className="relative inline-flex items-center ml-1">
                           <select
-                            value={currentUser.workStatus || 'working'}
+                            value={getEffectiveWorkStatus(currentUser)}
                             onChange={(e) => store.updateUser(currentUser.id, { workStatus: e.target.value as UserWorkStatus })}
                             className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer transition-all shadow-2xs focus:outline-none appearance-none pr-5 ${
-                              currentUser.workStatus === 'off'
+                              getEffectiveWorkStatus(currentUser) === 'off'
                                 ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                                : currentUser.workStatus === 'on_leave'
+                                : getEffectiveWorkStatus(currentUser) === 'on_leave'
                                 ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                             }`}
-                            title={state.language === 'ar' ? 'تغيير حالة العمل (يدوي)' : 'Change Work Status (Manual)'}
+                            title={state.language === 'ar' ? 'تغيير حالة العمل اليوم' : "Today's Work Status"}
                           >
                             <option value="working">🟢 {t.workStatusWorking}</option>
                             <option value="off">🔴 {t.workStatusOff}</option>
@@ -387,7 +444,104 @@ export default function DashboardClient() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1">
+
+                      {/* Scheduled / Upcoming Days Off Bar */}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                        {getUpcomingOffDates(currentUser).map((dateStr) => {
+                          const isToday = dateStr === getTodayIsoLocal();
+                          return (
+                            <span
+                              key={dateStr}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-bold shadow-2xs ${
+                                isToday
+                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                            >
+                              <span>📅 {state.language === 'ar' ? 'إجازة:' : 'Off:'} {formatOffDateShort(dateStr, state.language)}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePlannedOffDate(currentUser, dateStr)}
+                                className="hover:text-rose-600 text-slate-400 font-black ml-0.5 cursor-pointer"
+                                title={state.language === 'ar' ? 'إلغاء يوم الإجازة واسترجاع الرصيد' : 'Remove day off & restore 1 holiday'}
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          );
+                        })}
+
+                        {!addingOffDate ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddingOffDate(true);
+                              setOffStartDate(getNextFridayIso());
+                              setOffEndDate('');
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <span>📅 + {state.language === 'ar' ? 'إضافة يوم إجازة' : 'Add Day Off'}</span>
+                          </button>
+                        ) : (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleAddPlannedOffDates(currentUser, offStartDate, offEndDate);
+                            }}
+                            className="inline-flex items-center gap-1.5 bg-white p-1 px-2.5 rounded-xl border border-indigo-400 shadow-xs flex-wrap"
+                          >
+                            <span className="text-[10px] font-bold text-slate-500">
+                              {state.language === 'ar' ? 'من:' : 'Date:'}
+                            </span>
+                            <input
+                              type="date"
+                              required
+                              min={getTodayIsoLocal()}
+                              value={offStartDate}
+                              onChange={(e) => setOffStartDate(e.target.value)}
+                              className="text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-indigo-500"
+                            />
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {state.language === 'ar' ? 'إلى (اختياري):' : 'To (opt):'}
+                            </span>
+                            <input
+                              type="date"
+                              min={offStartDate || getTodayIsoLocal()}
+                              value={offEndDate}
+                              onChange={(e) => setOffEndDate(e.target.value)}
+                              className="text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-indigo-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const fri = getNextFridayIso();
+                                setOffStartDate(fri);
+                                setOffEndDate('');
+                              }}
+                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                              title="Set to upcoming Friday"
+                            >
+                              {state.language === 'ar' ? 'الجمعة القادمة' : 'Next Friday'}
+                            </button>
+                            <button
+                              type="submit"
+                              className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                            >
+                              {state.language === 'ar' ? 'حفظ' : 'Add'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAddingOffDate(false)}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </form>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-600 mt-1.5">
                         Your Personal Workbench: <strong>{myOpenTasks.length} active tasks assigned to you</strong>.
                       </p>
                     </div>
@@ -681,19 +835,24 @@ export default function DashboardClient() {
                               {u.role}
                             </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 border ${
-                              u.workStatus === 'off'
+                              getEffectiveWorkStatus(u) === 'off'
                                 ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : u.workStatus === 'on_leave'
+                                : getEffectiveWorkStatus(u) === 'on_leave'
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             }`}>
-                              <span>{u.workStatus === 'off' ? '🔴' : u.workStatus === 'on_leave' ? '🌴' : '🟢'}</span>
-                              <span>{u.workStatus === 'off' ? t.workStatusOff : u.workStatus === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
+                              <span>{getEffectiveWorkStatus(u) === 'off' ? '🔴' : getEffectiveWorkStatus(u) === 'on_leave' ? '🌴' : '🟢'}</span>
+                              <span>{getEffectiveWorkStatus(u) === 'off' ? t.workStatusOff : getEffectiveWorkStatus(u) === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
                             </span>
                             <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                               <span>🏖️</span>
                               <span>{u.remainingHolidays ?? 21} {t.holidaysLeft}</span>
                             </span>
+                            {getUpcomingOffDates(u).map((d) => (
+                              <span key={d} className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                📅 Off: {formatOffDateShort(d, state.language)}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </div>

@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Task, TaskStatus, Priority } from '@/lib/types';
+import {
+  Task,
+  TaskStatus,
+  Priority,
+  getEffectiveWorkStatus,
+  getUpcomingOffDates,
+  formatOffDateShort,
+} from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
 import { 
@@ -224,14 +231,30 @@ export const TaskList: React.FC<TaskListProps> = ({
                           <img src={assignee.avatar} alt={assigneeName} className="w-5 h-5 rounded-full object-cover border border-slate-200" />
                         )}
                         <span className="font-medium text-slate-700">{assigneeName}</span>
-                        {assignee?.workStatus && assignee.workStatus !== 'working' && (
+                        {assignee && getEffectiveWorkStatus(assignee) !== 'working' && (
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                            assignee.workStatus === 'off' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            getEffectiveWorkStatus(assignee) === 'off' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}>
-                            {assignee.workStatus === 'off' ? '🔴 Off' : '🌴 Leave'}
+                            {getEffectiveWorkStatus(assignee) === 'off' ? '🔴 Off Today' : '🌴 Leave'}
                           </span>
                         )}
                       </div>
+                      {assignee && getUpcomingOffDates(assignee).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {getUpcomingOffDates(assignee).slice(0, 2).map((d) => (
+                            <span
+                              key={d}
+                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border ${
+                                d === task.dueDate
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                            >
+                              📅 Off: {formatOffDateShort(d, state.language)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="text-[11px] text-slate-500 font-normal mt-1">
                         Assigned by <span className="font-semibold text-slate-600">{managerName}</span>
                       </div>

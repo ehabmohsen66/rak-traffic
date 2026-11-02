@@ -37,6 +37,64 @@ export interface User {
   weeklyOffDays: number[]; // 0 = Sun, 5 = Fri, 6 = Sat
   workStatus?: UserWorkStatus;
   remainingHolidays?: number;
+  plannedOffDates?: string[]; // Array of YYYY-MM-DD scheduled off dates
+}
+
+export function getTodayIsoLocal(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getEffectiveWorkStatus(user?: User): UserWorkStatus {
+  if (!user) return 'working';
+  const today = getTodayIsoLocal();
+  if (user.plannedOffDates?.includes(today)) {
+    return 'off';
+  }
+  return user.workStatus || 'working';
+}
+
+export function getUpcomingOffDates(user?: User): string[] {
+  if (!user?.plannedOffDates || !Array.isArray(user.plannedOffDates)) return [];
+  const today = getTodayIsoLocal();
+  return [...user.plannedOffDates]
+    .filter((d) => d >= today)
+    .sort();
+}
+
+export function formatOffDateShort(dateStr: string, lang: 'en' | 'ar' = 'en'): string {
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return dateStr;
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return date.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function expandDateRange(startStr: string, endStr?: string): string[] {
+  if (!startStr) return [];
+  if (!endStr || endStr <= startStr) return [startStr];
+  const [sy, sm, sd] = startStr.split('-').map(Number);
+  const [ey, em, ed] = endStr.split('-').map(Number);
+  const cur = new Date(sy, sm - 1, sd);
+  const end = new Date(ey, em - 1, ed);
+  const dates: string[] = [];
+  // Cap range at 60 days for safety
+  let count = 0;
+  while (cur <= end && count < 60) {
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const d = String(cur.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${d}`);
+    cur.setDate(cur.getDate() + 1);
+    count++;
+  }
+  return dates;
 }
 
 export type RetainerType = 
