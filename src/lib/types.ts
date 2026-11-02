@@ -24,6 +24,8 @@ export type Department =
   | 'Finance & Accounts'
   | 'Sales';
 
+export type UserWorkStatus = 'working' | 'off' | 'on_leave';
+
 export interface User {
   id: string;
   name: string;
@@ -33,6 +35,8 @@ export interface User {
   avatar: string;
   active: boolean;
   weeklyOffDays: number[]; // 0 = Sun, 5 = Fri, 6 = Sat
+  workStatus?: UserWorkStatus;
+  remainingHolidays?: number;
 }
 
 export type RetainerType = 

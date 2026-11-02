@@ -224,6 +224,13 @@ export const TaskList: React.FC<TaskListProps> = ({
                           <img src={assignee.avatar} alt={assigneeName} className="w-5 h-5 rounded-full object-cover border border-slate-200" />
                         )}
                         <span className="font-medium text-slate-700">{assigneeName}</span>
+                        {assignee?.workStatus && assignee.workStatus !== 'working' && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                            assignee.workStatus === 'off' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}>
+                            {assignee.workStatus === 'off' ? '🔴 Off' : '🌴 Leave'}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-500 font-normal mt-1">
                         Assigned by <span className="font-semibold text-slate-600">{managerName}</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { User } from '@/lib/types';
+import type { User, UserWorkStatus } from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
 import { 
@@ -13,7 +13,9 @@ import {
   Briefcase, 
   User as UserIcon, 
   Loader2, 
-  Sparkles 
+  Sparkles,
+  Calendar,
+  Palmtree
 } from 'lucide-react';
 
 interface EditProfileModalProps {
@@ -36,6 +38,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [email, setEmail] = useState(user.email);
   const [department, setDepartment] = useState(user.department);
   const [avatar, setAvatar] = useState(user.avatar);
+  const [workStatus, setWorkStatus] = useState<UserWorkStatus>(user.workStatus || 'working');
+  const [remainingHolidays, setRemainingHolidays] = useState<number>(user.remainingHolidays ?? 21);
   const [avatarMode, setAvatarMode] = useState<'upload' | 'url'>('upload');
   const [customUrl, setCustomUrl] = useState('');
   const [saving, setSaving] = useState(false);
@@ -96,7 +100,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         name: name.trim(),
         email: email.trim(),
         department: department.trim(),
-        avatar: avatar.trim()
+        avatar: avatar.trim(),
+        workStatus,
+        remainingHolidays: isNaN(Number(remainingHolidays)) ? 0 : Number(remainingHolidays)
       });
 
       setSuccess(true);
@@ -275,6 +281,80 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               placeholder="e.g. Lead Graphic Designer"
               className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
+          </div>
+
+          {/* Work Status (Working / Off / On Leave) */}
+          <div>
+            <label className="block text-slate-700 font-semibold mb-1.5 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+              <span>{t.workStatus}</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setWorkStatus('working')}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  workStatus === 'working'
+                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>🟢</span>
+                <span>{t.workStatusWorking}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWorkStatus('off')}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  workStatus === 'off'
+                    ? 'bg-rose-500 text-white border-rose-600 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>🔴</span>
+                <span>{t.workStatusOff}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWorkStatus('on_leave')}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  workStatus === 'on_leave'
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>🌴</span>
+                <span>{t.workStatusOnLeave}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Remaining Holidays (Manual input) */}
+          <div>
+            <label className="block text-slate-700 font-semibold mb-1 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Palmtree className="w-3.5 h-3.5 text-amber-500" />
+                <span>{t.remainingHolidays}</span>
+              </span>
+              <span className="text-[11px] font-normal text-slate-400">
+                {state.language === 'ar' ? 'إدخال يدوي بالأيام' : 'Manual days count'}
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="365"
+                value={remainingHolidays}
+                onChange={(e) => setRemainingHolidays(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 pr-16 text-slate-900 font-bold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+              <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
+                {t.holidaysLeft}
+              </span>
+            </div>
           </div>
 
           {/* Actions */}

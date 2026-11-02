@@ -72,6 +72,15 @@ export interface Translations {
   colNotes: string;
   colActions: string;
 
+  // Work Status & Holidays
+  workStatus: string;
+  workStatusWorking: string;
+  workStatusOff: string;
+  workStatusOnLeave: string;
+  remainingHolidays: string;
+  holidaysLeft: string;
+  editHolidays: string;
+
   // View Options
   viewKanban: string;
   viewList: string;
@@ -197,6 +206,14 @@ export const translations: Record<Language, Translations> = {
     colNotes: "Notes & Brief",
     colActions: "Actions",
 
+    workStatus: "Work Status",
+    workStatusWorking: "Working",
+    workStatusOff: "Day Off",
+    workStatusOnLeave: "On Leave",
+    remainingHolidays: "Remaining Holidays",
+    holidaysLeft: "holidays left",
+    editHolidays: "Edit Holidays",
+
     viewKanban: "Kanban Board",
     viewList: "Table List",
     viewCalendar: "Calendar",
@@ -313,6 +330,14 @@ export const translations: Record<Language, Translations> = {
     colCompletedDate: "تاريخ الإكمال",
     colNotes: "ملاحظات وتفاصيل",
     colActions: "إجراءات",
+
+    workStatus: "حالة العمل",
+    workStatusWorking: "على رأس العمل",
+    workStatusOff: "إجازة / غير متاح",
+    workStatusOnLeave: "في إجازة سنوية",
+    remainingHolidays: "رصيد الإجازات المتبقية",
+    holidaysLeft: "أيام متبقية",
+    editHolidays: "تعديل رصيد الإجازات",
 
     viewKanban: "لوحة كانبان",
     viewList: "جدول المهام",

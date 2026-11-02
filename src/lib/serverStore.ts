@@ -83,7 +83,9 @@ export async function getServerState(): Promise<AppState> {
             avatar: savedUser.avatar || initUser.avatar,
             name: savedUser.name || initUser.name,
             department: savedUser.department || initUser.department,
-            role: savedUser.role || initUser.role
+            role: savedUser.role || initUser.role,
+            workStatus: savedUser.workStatus || initUser.workStatus || 'working',
+            remainingHolidays: typeof savedUser.remainingHolidays === 'number' ? savedUser.remainingHolidays : (initUser.remainingHolidays ?? 21)
           } : initUser;
         });
 

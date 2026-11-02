@@ -227,6 +227,24 @@ export const EmployeeProfile: React.FC<EmployeeProfileProps> = ({
               </button>
             </div>
             <div className="text-xs text-slate-500 font-mono mt-0.5">{selectedUser.email}</div>
+            
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
+                selectedUser.workStatus === 'off'
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : selectedUser.workStatus === 'on_leave'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                <span>{selectedUser.workStatus === 'off' ? '🔴' : selectedUser.workStatus === 'on_leave' ? '🌴' : '🟢'}</span>
+                <span>{selectedUser.workStatus === 'off' ? t.workStatusOff : selectedUser.workStatus === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
+              </span>
+
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700 flex items-center gap-1">
+                <span>🏖️</span>
+                <span>{selectedUser.remainingHolidays ?? 21} {t.holidaysLeft}</span>
+              </span>
+            </div>
           </div>
         </div>
 

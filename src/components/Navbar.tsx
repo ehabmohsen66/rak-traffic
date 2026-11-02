@@ -140,11 +140,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setShowUserDropdown(!showUserDropdown)}
             className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 p-1.5 lg:px-3 lg:py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
           >
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              className="w-7 h-7 rounded-full object-cover border border-slate-200 ring-1 ring-slate-100"
-            />
+            <div className="relative">
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="w-7 h-7 rounded-full object-cover border border-slate-200 ring-1 ring-slate-100"
+              />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                  currentUser.workStatus === 'off'
+                    ? 'bg-rose-500'
+                    : currentUser.workStatus === 'on_leave'
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500'
+                }`}
+                title={currentUser.workStatus === 'off' ? 'Off' : currentUser.workStatus === 'on_leave' ? 'On Leave' : 'Working'}
+              />
+            </div>
             <div className="hidden lg:flex flex-col text-left">
               <span className="text-xs font-semibold text-slate-800 leading-tight">{currentUser.name}</span>
               <span className="text-[10px] text-slate-500 leading-tight">{currentUser.department}</span>
@@ -208,10 +220,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                           : 'text-slate-700 hover:bg-slate-50'
                       }`}
                     >
-                      <img src={u.avatar} alt={u.name} className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" />
+                      <div className="relative shrink-0">
+                        <img src={u.avatar} alt={u.name} className="w-7 h-7 rounded-full object-cover border border-slate-200" />
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
+                          u.workStatus === 'off' ? 'bg-rose-500' : u.workStatus === 'on_leave' ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`} />
+                      </div>
                       <div className="flex flex-col truncate min-w-0">
-                        <span className="truncate font-semibold">{u.name}</span>
-                        <span className="text-[10px] text-slate-500 font-normal truncate">{u.department} • {u.role}</span>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="truncate font-semibold">{u.name}</span>
+                          <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                            🏖️ {u.remainingHolidays ?? 21}d
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-normal truncate">
+                          {u.department} • {u.workStatus === 'off' ? 'Off' : u.workStatus === 'on_leave' ? 'On Leave' : 'Working'}
+                        </span>
                       </div>
                     </button>
                   ))}

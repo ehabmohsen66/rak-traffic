@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrafficStore, store } from '@/lib/store';
 import { translations } from '@/lib/i18n';
-import type { Task, User } from '@/lib/types';
+import type { Task, User, UserWorkStatus } from '@/lib/types';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar, MainTab } from '@/components/Sidebar';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -31,7 +31,10 @@ import {
   AlertTriangle,
   User as UserIcon,
   ListTodo,
-  Building
+  Building,
+  Pencil,
+  Palmtree,
+  Check
 } from 'lucide-react';
 
 export default function DashboardClient() {
@@ -78,6 +81,8 @@ export default function DashboardClient() {
 
   // Edit Profile Modal State
   const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
+  const [editingHolidays, setEditingHolidays] = useState(false);
+  const [holidayInputVal, setHolidayInputVal] = useState<number>(21);
 
   const isInitialMount = React.useRef(true);
 
@@ -290,15 +295,99 @@ export default function DashboardClient() {
                       className="w-12 h-12 rounded-full object-cover border-2 border-indigo-600 shadow-xs"
                     />
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="text-base font-bold text-slate-900">
                           {currentUser.name}
                         </h2>
                         <span className="text-[10px] font-bold uppercase text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-md">
                           {currentUser.department}
                         </span>
+
+                        {/* Work Status Dropdown (Working / Off / On Leave) */}
+                        <div className="relative inline-flex items-center ml-1">
+                          <select
+                            value={currentUser.workStatus || 'working'}
+                            onChange={(e) => store.updateUser(currentUser.id, { workStatus: e.target.value as UserWorkStatus })}
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer transition-all shadow-2xs focus:outline-none appearance-none pr-5 ${
+                              currentUser.workStatus === 'off'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                : currentUser.workStatus === 'on_leave'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                            title={state.language === 'ar' ? 'تغيير حالة العمل (يدوي)' : 'Change Work Status (Manual)'}
+                          >
+                            <option value="working">🟢 {t.workStatusWorking}</option>
+                            <option value="off">🔴 {t.workStatusOff}</option>
+                            <option value="on_leave">🌴 {t.workStatusOnLeave}</option>
+                          </select>
+                          <span className="absolute right-1.5 pointer-events-none text-[8px] text-slate-400">▼</span>
+                        </div>
+
+                        {/* Remaining Holidays Pill (Manual edit inline or click) */}
+                        {!editingHolidays ? (
+                          <div
+                            onClick={() => {
+                              setEditingHolidays(true);
+                              setHolidayInputVal(currentUser.remainingHolidays ?? 21);
+                            }}
+                            className="group inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white hover:bg-indigo-50/50 text-slate-700 border border-slate-200 hover:border-indigo-300 text-[11px] font-semibold cursor-pointer shadow-2xs transition-all"
+                            title={state.language === 'ar' ? 'انقر لتعديل رصيد الإجازات المتبقية يدوياً' : 'Click to manually edit remaining holidays'}
+                          >
+                            <span>🏖️</span>
+                            <span className="text-slate-500">{t.remainingHolidays}:</span>
+                            <strong className="text-indigo-900 font-extrabold">{currentUser.remainingHolidays ?? 21}</strong>
+                            <span className="text-[10px] text-slate-400 font-normal">{t.holidaysLeft}</span>
+                            <Pencil className="w-2.5 h-2.5 text-slate-400 group-hover:text-indigo-600 transition-colors ml-0.5" />
+                          </div>
+                        ) : (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              store.updateUser(currentUser.id, { remainingHolidays: Number(holidayInputVal) });
+                              setEditingHolidays(false);
+                            }}
+                            className="inline-flex items-center gap-1 bg-white p-0.5 px-2 rounded-full border border-indigo-400 shadow-xs"
+                          >
+                            <span>🏖️</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="365"
+                              autoFocus
+                              value={holidayInputVal}
+                              onChange={(e) => setHolidayInputVal(Math.max(0, parseInt(e.target.value) || 0))}
+                              className="w-12 text-xs font-black text-indigo-700 bg-transparent text-center focus:outline-none"
+                            />
+                            <span className="text-[10px] text-slate-400">{t.holidaysLeft}</span>
+                            <button
+                              type="submit"
+                              className="w-4 h-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center text-[9px] font-bold cursor-pointer"
+                              title="Save"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingHolidays(false)}
+                              className="w-4 h-4 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full flex items-center justify-center text-[9px] font-bold cursor-pointer"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </form>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setProfileModalUser(currentUser)}
+                          className="p-1 rounded-lg hover:bg-white text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                          title={state.language === 'ar' ? 'تعديل الملف الشخصي' : 'Edit profile'}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <p className="text-xs text-slate-600 mt-0.5">
+                      <p className="text-xs text-slate-600 mt-1">
                         Your Personal Workbench: <strong>{myOpenTasks.length} active tasks assigned to you</strong>.
                       </p>
                     </div>
@@ -587,9 +676,25 @@ export default function DashboardClient() {
                           </h4>
                           <div className="text-xs text-slate-500 truncate">{u.department}</div>
                           <div className="text-[10px] text-slate-400 truncate max-w-[170px]" title={u.email}>{u.email}</div>
-                          <span className="inline-block text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
-                            {u.role}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                            <span className="inline-block text-[10px] font-bold uppercase text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                              {u.role}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 border ${
+                              u.workStatus === 'off'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : u.workStatus === 'on_leave'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              <span>{u.workStatus === 'off' ? '🔴' : u.workStatus === 'on_leave' ? '🌴' : '🟢'}</span>
+                              <span>{u.workStatus === 'off' ? t.workStatusOff : u.workStatus === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
+                            </span>
+                            <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>🏖️</span>
+                              <span>{u.remainingHolidays ?? 21} {t.holidaysLeft}</span>
+                            </span>
+                          </div>
                         </div>
                       </div>
                       

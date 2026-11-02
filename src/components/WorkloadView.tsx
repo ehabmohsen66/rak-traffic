@@ -147,8 +147,13 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                     : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
                 }`}
               >
-                <img src={m.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
-                {m.name}
+                <div className="relative">
+                  <img src={m.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
+                    m.workStatus === 'off' ? 'bg-rose-500' : m.workStatus === 'on_leave' ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`} />
+                </div>
+                <span>{m.name}</span>
               </button>
             );
           })}
@@ -201,6 +206,21 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">{member.name}</h3>
                     <span className="text-[11px] text-slate-500">{member.department}</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 border ${
+                        member.workStatus === 'off'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : member.workStatus === 'on_leave'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        <span>{member.workStatus === 'off' ? '🔴' : member.workStatus === 'on_leave' ? '🌴' : '🟢'}</span>
+                        <span>{member.workStatus === 'off' ? t.workStatusOff : member.workStatus === 'on_leave' ? t.workStatusOnLeave : t.workStatusWorking}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        🏖️ {member.remainingHolidays ?? 21}d {t.holidaysLeft}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
