@@ -10,6 +10,8 @@ import {
   getEffectiveWorkStatus,
   getUpcomingOffDates,
   formatOffDateShort,
+  formatIsoToDdMmYyyy,
+  extractIsoDate,
   expandDateRange,
   getTodayIsoLocal,
 } from '@/lib/types';
@@ -95,11 +97,15 @@ export default function DashboardClient() {
   const [addingOffDate, setAddingOffDate] = useState(false);
   const [offStartDate, setOffStartDate] = useState<string>('');
   const [offEndDate, setOffEndDate] = useState<string>('');
+  const [editingOffOriginal, setEditingOffOriginal] = useState<string | null>(null);
+  const offStartPickerRef = React.useRef<HTMLInputElement>(null);
+  const offEndPickerRef = React.useRef<HTMLInputElement>(null);
 
   const handleAddPlannedOffDates = (user: User, startStr: string, endStr?: string) => {
-    if (!startStr) return;
+    if (!startStr.trim()) return;
     const range = expandDateRange(startStr, endStr);
-    const existing = new Set(user.plannedOffDates || []);
+    const baseList = (user.plannedOffDates || []).filter((d) => d !== editingOffOriginal);
+    const existing = new Set(baseList);
     let newlyAdded = 0;
     range.forEach((d) => {
       if (!existing.has(d)) {
@@ -108,10 +114,10 @@ export default function DashboardClient() {
       }
     });
     const updatedDates = Array.from(existing).sort();
-    const currentRemaining = user.remainingHolidays ?? 21;
+    const currentRemaining = (user.remainingHolidays ?? 21) + (editingOffOriginal ? 1 : 0);
     const nextRemaining = Math.max(0, currentRemaining - newlyAdded);
     const today = getTodayIsoLocal();
-    const isOffTodayNow = updatedDates.includes(today);
+    const isOffTodayNow = updatedDates.some((d) => extractIsoDate(d) === today);
     store.updateUser(user.id, {
       plannedOffDates: updatedDates,
       remainingHolidays: nextRemaining,
@@ -120,6 +126,7 @@ export default function DashboardClient() {
     setAddingOffDate(false);
     setOffStartDate('');
     setOffEndDate('');
+    setEditingOffOriginal(null);
   };
 
   const handleRemovePlannedOffDate = (user: User, dateToRemove: string) => {
@@ -128,7 +135,7 @@ export default function DashboardClient() {
     const updatedDates = existing.filter((d) => d !== dateToRemove);
     const currentRemaining = user.remainingHolidays ?? 21;
     const today = getTodayIsoLocal();
-    const isOffTodayNow = updatedDates.includes(today);
+    const isOffTodayNow = updatedDates.some((d) => extractIsoDate(d) === today);
     store.updateUser(user.id, {
       plannedOffDates: updatedDates,
       remainingHolidays: currentRemaining + 1,
@@ -457,7 +464,7 @@ export default function DashboardClient() {
                       {/* Scheduled / Upcoming Days Off Bar */}
                       <div className="flex items-center gap-1.5 flex-wrap mt-2">
                         {getUpcomingOffDates(currentUser).map((dateStr) => {
-                          const isToday = dateStr === getTodayIsoLocal();
+                          const isToday = extractIsoDate(dateStr) === getTodayIsoLocal();
                           return (
                             <span
                               key={dateStr}
@@ -467,7 +474,22 @@ export default function DashboardClient() {
                                   : 'bg-amber-50 text-amber-800 border-amber-200'
                               }`}
                             >
-                              <span>📅 {state.language === 'ar' ? 'إجازة:' : 'Off:'} {formatOffDateShort(dateStr, state.language)}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingOffOriginal(dateStr);
+                                  setAddingOffDate(true);
+                                  const iso = extractIsoDate(dateStr);
+                                  const pipeIdx = dateStr.indexOf('|');
+                                  const notePart = pipeIdx !== -1 ? dateStr.slice(pipeIdx + 1) : '';
+                                  setOffStartDate(iso ? formatIsoToDdMmYyyy(iso) : dateStr);
+                                  setOffEndDate(notePart);
+                                }}
+                                className="hover:underline cursor-pointer text-start"
+                                title={state.language === 'ar' ? 'انقر لتعديل يوم الإجازة يدوياً' : 'Click to edit day off text or date'}
+                              >
+                                📅 {state.language === 'ar' ? 'إجازة:' : 'Off:'} {formatOffDateShort(dateStr, state.language)}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => handleRemovePlannedOffDate(currentUser, dateStr)}
@@ -484,8 +506,9 @@ export default function DashboardClient() {
                           <button
                             type="button"
                             onClick={() => {
+                              setEditingOffOriginal(null);
                               setAddingOffDate(true);
-                              setOffStartDate(getTodayIsoLocal());
+                              setOffStartDate(formatIsoToDdMmYyyy(getTodayIsoLocal()));
                               setOffEndDate('');
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
@@ -503,33 +526,99 @@ export default function DashboardClient() {
                             <span className="text-[10px] font-bold text-slate-500">
                               {state.language === 'ar' ? 'التاريخ:' : 'Date:'}
                             </span>
-                            <input
-                              type="date"
-                              required
-                              min={getTodayIsoLocal()}
-                              value={offStartDate}
-                              onChange={(e) => setOffStartDate(e.target.value)}
-                              className="text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-indigo-500"
-                            />
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="text"
+                                required
+                                autoFocus
+                                value={offStartDate}
+                                onChange={(e) => setOffStartDate(e.target.value)}
+                                placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو نص' : 'dd/mm/yyyy or text'}
+                                className="w-36 text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg ps-2 pe-6 py-0.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  try {
+                                    offStartPickerRef.current?.showPicker?.();
+                                  } catch {
+                                    // Ignore if showPicker is unsupported
+                                  }
+                                }}
+                                className="absolute end-1.5 flex items-center justify-center w-4 h-4 text-slate-500 hover:text-indigo-600 cursor-pointer"
+                                title={state.language === 'ar' ? 'اختر من التقويم' : 'Pick from calendar'}
+                              >
+                                <CalendarIcon className="w-3.5 h-3.5 pointer-events-none" />
+                                <input
+                                  ref={offStartPickerRef}
+                                  type="date"
+                                  tabIndex={-1}
+                                  value={extractIsoDate(offStartDate) || ''}
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      setOffStartDate(formatIsoToDdMmYyyy(e.target.value));
+                                    }
+                                  }}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                              </button>
+                            </div>
                             <span className="text-[10px] font-bold text-slate-400">
                               {state.language === 'ar' ? 'إلى (اختياري):' : 'To (opt):'}
                             </span>
-                            <input
-                              type="date"
-                              min={offStartDate || getTodayIsoLocal()}
-                              value={offEndDate}
-                              onChange={(e) => setOffEndDate(e.target.value)}
-                              className="text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-indigo-500"
-                            />
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="text"
+                                value={offEndDate}
+                                onChange={(e) => setOffEndDate(e.target.value)}
+                                placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو ملاحظة' : 'dd/mm/yyyy or note'}
+                                className="w-36 text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg ps-2 pe-6 py-0.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  try {
+                                    offEndPickerRef.current?.showPicker?.();
+                                  } catch {
+                                    // Ignore if showPicker is unsupported
+                                  }
+                                }}
+                                className="absolute end-1.5 flex items-center justify-center w-4 h-4 text-slate-500 hover:text-indigo-600 cursor-pointer"
+                                title={state.language === 'ar' ? 'اختر من التقويم' : 'Pick from calendar'}
+                              >
+                                <CalendarIcon className="w-3.5 h-3.5 pointer-events-none" />
+                                <input
+                                  ref={offEndPickerRef}
+                                  type="date"
+                                  tabIndex={-1}
+                                  value={extractIsoDate(offEndDate) || ''}
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      setOffEndDate(formatIsoToDdMmYyyy(e.target.value));
+                                    }
+                                  }}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                              </button>
+                            </div>
                             <button
                               type="submit"
                               className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer"
                             >
-                              {state.language === 'ar' ? 'حفظ' : 'Add'}
+                              {editingOffOriginal
+                                ? state.language === 'ar'
+                                  ? 'تحديث'
+                                  : 'Save'
+                                : state.language === 'ar'
+                                ? 'حفظ'
+                                : 'Add'}
                             </button>
                             <button
                               type="button"
-                              onClick={() => setAddingOffDate(false)}
+                              onClick={() => {
+                                setAddingOffDate(false);
+                                setEditingOffOriginal(null);
+                              }}
                               className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer"
                             >
                               ✕

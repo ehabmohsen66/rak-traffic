@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 import {
   type User,
   type UserWorkStatus,
+  getUpcomingOffDates,
   formatOffDateShort,
+  formatIsoToDdMmYyyy,
+  extractIsoDate,
   expandDateRange,
   getTodayIsoLocal,
 } from '@/lib/types';
@@ -47,10 +50,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [workStatus, setWorkStatus] = useState<UserWorkStatus>(user.workStatus || 'working');
   const [remainingHolidays, setRemainingHolidays] = useState<number>(user.remainingHolidays ?? 21);
   const [plannedOffDates, setPlannedOffDates] = useState<string[]>(
-    (user.plannedOffDates || []).filter((d) => d >= getTodayIsoLocal()).sort()
+    getUpcomingOffDates(user)
   );
   const [newOffStart, setNewOffStart] = useState<string>('');
   const [newOffEnd, setNewOffEnd] = useState<string>('');
+  const startPickerRef = React.useRef<HTMLInputElement>(null);
+  const endPickerRef = React.useRef<HTMLInputElement>(null);
   const [avatarMode, setAvatarMode] = useState<'upload' | 'url'>('upload');
   const [customUrl, setCustomUrl] = useState('');
   const [saving, setSaving] = useState(false);
@@ -100,7 +105,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   };
 
   const handleAddOffRange = () => {
-    if (!newOffStart) return;
+    if (!newOffStart.trim()) return;
     const range = expandDateRange(newOffStart, newOffEnd);
     const existing = new Set(plannedOffDates);
     let added = 0;
@@ -112,7 +117,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     });
     const nextDates = Array.from(existing).sort();
     setPlannedOffDates(nextDates);
-    if (nextDates.includes(getTodayIsoLocal())) {
+    if (nextDates.some((d) => extractIsoDate(d) === getTodayIsoLocal())) {
       setWorkStatus('off');
     }
     if (added > 0) {
@@ -126,7 +131,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     if (!plannedOffDates.includes(dateStr)) return;
     const nextDates = plannedOffDates.filter((d) => d !== dateStr);
     setPlannedOffDates(nextDates);
-    if (dateStr === getTodayIsoLocal()) {
+    if (extractIsoDate(dateStr) === getTodayIsoLocal()) {
       setWorkStatus('working');
     }
     setRemainingHolidays((prev) => prev + 1);
@@ -415,22 +420,89 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </label>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <input
-                type="date"
-                min={getTodayIsoLocal()}
-                value={newOffStart}
-                onChange={(e) => setNewOffStart(e.target.value)}
-                className="flex-1 min-w-[130px] bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
-              />
+              <div className="relative flex-1 min-w-[140px] flex items-center">
+                <input
+                  type="text"
+                  value={newOffStart}
+                  onChange={(e) => setNewOffStart(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddOffRange();
+                    }
+                  }}
+                  placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو نص' : 'dd/mm/yyyy or text'}
+                  className="w-full bg-white border border-slate-300 rounded-xl ps-2.5 pe-8 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      startPickerRef.current?.showPicker?.();
+                    } catch {
+                      // Ignore if showPicker is unsupported
+                    }
+                  }}
+                  className="absolute end-2 flex items-center justify-center w-5 h-5 text-slate-500 hover:text-indigo-600 cursor-pointer"
+                  title={state.language === 'ar' ? 'اختر من التقويم' : 'Pick from calendar'}
+                >
+                  <Calendar className="w-3.5 h-3.5 pointer-events-none" />
+                  <input
+                    ref={startPickerRef}
+                    type="date"
+                    tabIndex={-1}
+                    value={extractIsoDate(newOffStart) || ''}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setNewOffStart(formatIsoToDdMmYyyy(e.target.value));
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </button>
+              </div>
               <span className="text-xs text-slate-400">{state.language === 'ar' ? 'إلى' : 'to'}</span>
-              <input
-                type="date"
-                min={newOffStart || getTodayIsoLocal()}
-                value={newOffEnd}
-                onChange={(e) => setNewOffEnd(e.target.value)}
-                placeholder="Optional"
-                className="flex-1 min-w-[130px] bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
-              />
+              <div className="relative flex-1 min-w-[140px] flex items-center">
+                <input
+                  type="text"
+                  value={newOffEnd}
+                  onChange={(e) => setNewOffEnd(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddOffRange();
+                    }
+                  }}
+                  placeholder={state.language === 'ar' ? 'يوم/شهر/سنة أو ملاحظة (اختياري)' : 'dd/mm/yyyy or note (opt)'}
+                  className="w-full bg-white border border-slate-300 rounded-xl ps-2.5 pe-8 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      endPickerRef.current?.showPicker?.();
+                    } catch {
+                      // Ignore if showPicker is unsupported
+                    }
+                  }}
+                  className="absolute end-2 flex items-center justify-center w-5 h-5 text-slate-500 hover:text-indigo-600 cursor-pointer"
+                  title={state.language === 'ar' ? 'اختر من التقويم' : 'Pick from calendar'}
+                >
+                  <Calendar className="w-3.5 h-3.5 pointer-events-none" />
+                  <input
+                    ref={endPickerRef}
+                    type="date"
+                    tabIndex={-1}
+                    value={extractIsoDate(newOffEnd) || ''}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setNewOffEnd(formatIsoToDdMmYyyy(e.target.value));
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={handleAddOffRange}

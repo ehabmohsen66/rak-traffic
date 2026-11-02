@@ -9,6 +9,7 @@ import {
   getEffectiveWorkStatus,
   getUpcomingOffDates,
   formatOffDateShort,
+  extractIsoDate,
 } from '@/lib/types';
 import { BarChart3, AlertTriangle, CheckCircle2, UserCheck, Flame } from 'lucide-react';
 
@@ -323,7 +324,7 @@ export const WorkloadView: React.FC<WorkloadViewProps> = ({
                       (t) => t.assignedToId === member.id && t.dueDate === dateStr
                     );
                     const count = dayTasks.length;
-                    const isScheduledOff = member.plannedOffDates?.includes(dateStr);
+                    const isScheduledOff = member.plannedOffDates?.some((d) => extractIsoDate(d) === dateStr);
 
                     let bgCell = 'bg-slate-50 text-slate-400';
                     if (isScheduledOff) {

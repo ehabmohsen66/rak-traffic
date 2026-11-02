@@ -37,7 +37,7 @@ export interface User {
   weeklyOffDays: number[]; // 0 = Sun, 5 = Fri, 6 = Sat
   workStatus?: UserWorkStatus;
   remainingHolidays?: number;
-  plannedOffDates?: string[]; // Array of YYYY-MM-DD scheduled off dates
+  plannedOffDates?: string[]; // Array of YYYY-MM-DD scheduled off dates or custom text entries
 }
 
 export function getTodayIsoLocal(): string {
@@ -48,10 +48,87 @@ export function getTodayIsoLocal(): string {
   return `${y}-${m}-${d}`;
 }
 
+export function formatIsoToDdMmYyyy(isoStr: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoStr.trim());
+  if (!m) return isoStr;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+export function parseFlexibleDate(input: string): { iso: string; note?: string } | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  const lower = raw.toLowerCase();
+  if (lower === 'today' || lower === 'اليوم') {
+    return { iso: getTodayIsoLocal() };
+  }
+  if (lower === 'tomorrow' || lower === 'tmrw' || lower === 'غدا' || lower === 'غداً') {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return { iso: `${y}-${m}-${day}` };
+  }
+
+  // Match YYYY-MM-DD or YYYY/MM/DD (with optional trailing note after | or - or space)
+  const isoMatch = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s*(?:\||[-–—:]|\s)\s*(.+))?$/.exec(raw);
+  if (isoMatch) {
+    const y = Number(isoMatch[1]);
+    const m = Number(isoMatch[2]);
+    const d = Number(isoMatch[3]);
+    const note = isoMatch[4]?.trim();
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      return note ? { iso, note } : { iso };
+    }
+  }
+
+  // Match DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (or 2-digit year YY), with optional trailing note
+  const dmyMatch = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:\s*(?:\||[-–—:]|\s)\s*(.+))?$/.exec(raw);
+  if (dmyMatch) {
+    let d = Number(dmyMatch[1]);
+    let m = Number(dmyMatch[2]);
+    let y = Number(dmyMatch[3]);
+    const note = dmyMatch[4]?.trim();
+    if (y < 100) y += 2000;
+    if (m > 12 && d <= 12) {
+      const tmp = d;
+      d = m;
+      m = tmp;
+    }
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 2000 && y <= 2100) {
+      const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      return note ? { iso, note } : { iso };
+    }
+  }
+
+  // Match DD/MM without year (assume current year)
+  const dmMatch = /^(\d{1,2})[-/](\d{1,2})(?:\s*(?:\||[-–—:]|\s)\s*(.+))?$/.exec(raw);
+  if (dmMatch) {
+    const d = Number(dmMatch[1]);
+    const m = Number(dmMatch[2]);
+    const note = dmMatch[3]?.trim();
+    const y = new Date().getFullYear();
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      return note ? { iso, note } : { iso };
+    }
+  }
+
+  return null;
+}
+
+export function extractIsoDate(dateOrText: string): string | null {
+  if (!dateOrText) return null;
+  const parsed = parseFlexibleDate(dateOrText);
+  return parsed ? parsed.iso : null;
+}
+
 export function getEffectiveWorkStatus(user?: User): UserWorkStatus {
   if (!user) return 'working';
   const today = getTodayIsoLocal();
-  if (user.plannedOffDates?.includes(today)) {
+  if (user.plannedOffDates?.some((d) => extractIsoDate(d) === today)) {
     return 'off';
   }
   return user.workStatus || 'working';
@@ -61,40 +138,70 @@ export function getUpcomingOffDates(user?: User): string[] {
   if (!user?.plannedOffDates || !Array.isArray(user.plannedOffDates)) return [];
   const today = getTodayIsoLocal();
   return [...user.plannedOffDates]
-    .filter((d) => d >= today)
+    .filter((d) => {
+      const iso = extractIsoDate(d);
+      return iso ? iso >= today : Boolean(d && d.trim());
+    })
     .sort();
 }
 
 export function formatOffDateShort(dateStr: string, lang: 'en' | 'ar' = 'en'): string {
-  const parts = dateStr.split('-').map(Number);
+  const parsed = parseFlexibleDate(dateStr);
+  if (!parsed) return dateStr;
+  const parts = parsed.iso.split('-').map(Number);
   if (parts.length !== 3 || parts.some(isNaN)) return dateStr;
   const date = new Date(parts[0], parts[1] - 1, parts[2]);
-  return date.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+  const formatted = date.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
+  return parsed.note ? `${formatted} (${parsed.note})` : formatted;
 }
 
 export function expandDateRange(startStr: string, endStr?: string): string[] {
-  if (!startStr) return [];
-  if (!endStr || endStr <= startStr) return [startStr];
-  const [sy, sm, sd] = startStr.split('-').map(Number);
-  const [ey, em, ed] = endStr.split('-').map(Number);
-  const cur = new Date(sy, sm - 1, sd);
-  const end = new Date(ey, em - 1, ed);
-  const dates: string[] = [];
-  // Cap range at 60 days for safety
-  let count = 0;
-  while (cur <= end && count < 60) {
-    const y = cur.getFullYear();
-    const m = String(cur.getMonth() + 1).padStart(2, '0');
-    const d = String(cur.getDate()).padStart(2, '0');
-    dates.push(`${y}-${m}-${d}`);
-    cur.setDate(cur.getDate() + 1);
-    count++;
+  const rawStart = startStr.trim();
+  const rawEnd = (endStr || '').trim();
+  if (!rawStart) return [];
+
+  const startParsed = parseFlexibleDate(rawStart);
+  const endParsed = rawEnd ? parseFlexibleDate(rawEnd) : null;
+
+  if (startParsed && endParsed) {
+    const startIso = startParsed.iso;
+    const endIso = endParsed.iso;
+    const note = startParsed.note || endParsed.note;
+    if (endIso <= startIso) {
+      return [note ? `${startIso}|${note}` : startIso];
+    }
+    const [sy, sm, sd] = startIso.split('-').map(Number);
+    const [ey, em, ed] = endIso.split('-').map(Number);
+    const cur = new Date(sy, sm - 1, sd);
+    const end = new Date(ey, em - 1, ed);
+    const dates: string[] = [];
+    // Cap range at 60 days for safety
+    let count = 0;
+    while (cur <= end && count < 60) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, '0');
+      const d = String(cur.getDate()).padStart(2, '0');
+      const iso = `${y}-${m}-${d}`;
+      dates.push(note ? `${iso}|${note}` : iso);
+      cur.setDate(cur.getDate() + 1);
+      count++;
+    }
+    return dates;
   }
-  return dates;
+
+  if (startParsed) {
+    const combinedNote = [startParsed.note, rawEnd].filter(Boolean).join(' - ');
+    return [combinedNote ? `${startParsed.iso}|${combinedNote}` : startParsed.iso];
+  }
+
+  if (rawEnd) {
+    return [`${rawStart} - ${rawEnd}`];
+  }
+  return [rawStart];
 }
 
 export function getAssigneeOffAlert(
@@ -127,7 +234,10 @@ export function getAssigneeOffAlert(
 
   const start = briefDate || today;
   const end = dueDate && dueDate >= start ? dueDate : start;
-  const conflictingDates = upcomingDates.filter((d) => d >= start && d <= end);
+  const conflictingDates = upcomingDates.filter((d) => {
+    const iso = extractIsoDate(d);
+    return iso ? iso >= start && iso <= end : false;
+  });
   const isConflictWithTaskDates = isOffToday || conflictingDates.length > 0;
   const hasAlert = isOffToday || upcomingDates.length > 0;
 
