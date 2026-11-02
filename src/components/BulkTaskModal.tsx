@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Priority } from '@/lib/types';
+import {
+  Priority,
+  getAssigneeOffAlert,
+  getUpcomingOffDates,
+  formatOffDateShort,
+} from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
-import { X, Zap, Users, Building, CheckSquare, Square } from 'lucide-react';
+import { X, Zap, Users, Building, CheckSquare, Square, AlertTriangle } from 'lucide-react';
 
 interface BulkTaskModalProps {
   store: TrafficStore;
@@ -46,6 +51,22 @@ export const BulkTaskModal: React.FC<BulkTaskModalProps> = ({ store, state, onCl
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || selectedClientIds.length === 0 || selectedEmployeeIds.length === 0) return;
+
+    const alerts = selectedEmployeeIds
+      .map((id) => state.users.find((u) => u.id === id))
+      .map((u) => getAssigneeOffAlert(u, briefDate, dueDate, state.language))
+      .filter((a) => a.hasAlert);
+
+    if (alerts.length > 0) {
+      const summary = alerts.map((a) => `• ${a.message}`).join('\n');
+      const confirmMsg =
+        state.language === 'ar'
+          ? `⚠️ تنبيه إجازات الموظفين:\n${summary}\n\nهل تريد المتابعة وإسناد المهام؟`
+          : `⚠️ Employee Off-Day Alert:\n${summary}\n\nDo you still want to assign these tasks?`;
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    }
 
     store.addBulkTasks({
       title,
@@ -166,10 +187,32 @@ export const BulkTaskModal: React.FC<BulkTaskModalProps> = ({ store, state, onCl
                   >
                     {isSelected ? <CheckSquare className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> : <Square className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
                     <span className="truncate text-[11px]">{u.name}</span>
+                    {getUpcomingOffDates(u).length > 0 && (
+                      <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-100 text-amber-800 shrink-0">
+                        📅 {formatOffDateShort(getUpcomingOffDates(u)[0], state.language)}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
+            {(() => {
+              const alerts = selectedEmployeeIds
+                .map((id) => state.users.find((u) => u.id === id))
+                .map((u) => getAssigneeOffAlert(u, briefDate, dueDate, state.language))
+                .filter((a) => a.hasAlert);
+              if (alerts.length === 0) return null;
+              return (
+                <div className="px-3 py-2 rounded-xl border bg-rose-50 text-rose-800 border-rose-300 text-[11px] font-bold space-y-1">
+                  {alerts.map((a, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                      <span>{a.message}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -9,6 +9,7 @@ import {
   getUpcomingOffDates,
   formatOffDateShort,
   getEffectiveWorkStatus,
+  getAssigneeOffAlert,
 } from '@/lib/types';
 import { AppState, TrafficStore } from '@/lib/store';
 import { translations } from '@/lib/i18n';
@@ -18,7 +19,8 @@ import {
   Send,
   Mail,
   ChevronDown,
-  Check
+  Check,
+  AlertTriangle
 } from 'lucide-react';
 import { EmailNotificationType } from '@/lib/types';
 import { getErrorMessage } from '@/lib/errors';
@@ -79,6 +81,18 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    const selUser = state.users.find((u) => u.id === assignedToId);
+    const offAlert = getAssigneeOffAlert(selUser, briefDate, dueDate, state.language);
+    if (offAlert.hasAlert && selUser) {
+      const confirmMsg =
+        state.language === 'ar'
+          ? `⚠️ ${offAlert.message}\n\nهل تريد بالتأكيد إسناد هذه المهمة إلى ${selUser.name}؟`
+          : `⚠️ ${offAlert.message}\n\nDo you still want to assign this task to ${selUser.name}?`;
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    }
 
     if (isEditing && task) {
       store.updateTask(task.id, {
@@ -271,20 +285,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </select>
               {(() => {
                 const selUser = state.users.find((u) => u.id === assignedToId);
-                if (!selUser) return null;
-                const upcoming = getUpcomingOffDates(selUser);
-                const isOffOnDue = upcoming.includes(dueDate);
-                if (upcoming.length === 0 && getEffectiveWorkStatus(selUser) === 'working') return null;
+                const offAlert = getAssigneeOffAlert(selUser, briefDate, dueDate, state.language);
+                if (!offAlert.hasAlert) return null;
                 return (
-                  <div className={`mt-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 flex-wrap ${
-                    isOffOnDue ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200'
-                  }`}>
-                    <span>{isOffOnDue ? '⚠️ Scheduled OFF on Due Date!' : '📅 Scheduled Off Days:'}</span>
-                    {upcoming.map((d) => (
-                      <span key={d} className="underline">
-                        {formatOffDateShort(d, state.language)}
-                      </span>
-                    ))}
+                  <div
+                    className={`mt-2 px-3 py-2 rounded-xl border text-[11px] font-bold flex items-start gap-2 animate-in fade-in ${
+                      offAlert.isConflictWithTaskDates
+                        ? 'bg-rose-50 text-rose-800 border-rose-300 shadow-2xs'
+                        : 'bg-amber-50 text-amber-800 border-amber-300'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                    <div>
+                      <div>{offAlert.message}</div>
+                    </div>
                   </div>
                 );
               })()}

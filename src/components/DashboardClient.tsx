@@ -96,17 +96,6 @@ export default function DashboardClient() {
   const [offStartDate, setOffStartDate] = useState<string>('');
   const [offEndDate, setOffEndDate] = useState<string>('');
 
-  const getNextFridayIso = () => {
-    const now = new Date();
-    const day = now.getDay(); // 0=Sun .. 5=Fri .. 6=Sat
-    const daysUntilFri = (5 - day + 7) % 7 || 7;
-    const nextFri = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFri);
-    const y = nextFri.getFullYear();
-    const m = String(nextFri.getMonth() + 1).padStart(2, '0');
-    const d = String(nextFri.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
   const handleAddPlannedOffDates = (user: User, startStr: string, endStr?: string) => {
     if (!startStr) return;
     const range = expandDateRange(startStr, endStr);
@@ -121,9 +110,12 @@ export default function DashboardClient() {
     const updatedDates = Array.from(existing).sort();
     const currentRemaining = user.remainingHolidays ?? 21;
     const nextRemaining = Math.max(0, currentRemaining - newlyAdded);
+    const today = getTodayIsoLocal();
+    const isOffTodayNow = updatedDates.includes(today);
     store.updateUser(user.id, {
       plannedOffDates: updatedDates,
       remainingHolidays: nextRemaining,
+      workStatus: isOffTodayNow ? 'off' : 'working',
     });
     setAddingOffDate(false);
     setOffStartDate('');
@@ -135,9 +127,12 @@ export default function DashboardClient() {
     if (!existing.includes(dateToRemove)) return;
     const updatedDates = existing.filter((d) => d !== dateToRemove);
     const currentRemaining = user.remainingHolidays ?? 21;
+    const today = getTodayIsoLocal();
+    const isOffTodayNow = updatedDates.includes(today);
     store.updateUser(user.id, {
       plannedOffDates: updatedDates,
       remainingHolidays: currentRemaining + 1,
+      workStatus: isOffTodayNow ? 'off' : 'working',
     });
   };
 
@@ -360,26 +355,40 @@ export default function DashboardClient() {
                           {currentUser.department}
                         </span>
 
-                        {/* Work Status Dropdown (Working / Off / On Leave) */}
-                        <div className="relative inline-flex items-center ml-1">
-                          <select
-                            value={getEffectiveWorkStatus(currentUser)}
-                            onChange={(e) => store.updateUser(currentUser.id, { workStatus: e.target.value as UserWorkStatus })}
-                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer transition-all shadow-2xs focus:outline-none appearance-none pr-5 ${
-                              getEffectiveWorkStatus(currentUser) === 'off'
-                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                                : getEffectiveWorkStatus(currentUser) === 'on_leave'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                            }`}
-                            title={state.language === 'ar' ? 'تغيير حالة العمل اليوم' : "Today's Work Status"}
-                          >
-                            <option value="working">🟢 {t.workStatusWorking}</option>
-                            <option value="off">🔴 {t.workStatusOff}</option>
-                            <option value="on_leave">🌴 {t.workStatusOnLeave}</option>
-                          </select>
-                          <span className="absolute right-1.5 pointer-events-none text-[8px] text-slate-400">▼</span>
-                        </div>
+                        {/* Automatic Work Status Sign (Reflects if user is off today) */}
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ml-1 ${
+                            getEffectiveWorkStatus(currentUser) === 'off'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : getEffectiveWorkStatus(currentUser) === 'on_leave'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}
+                          title={
+                            getEffectiveWorkStatus(currentUser) === 'working'
+                              ? state.language === 'ar'
+                                ? 'على رأس العمل اليوم'
+                                : 'Working today'
+                              : state.language === 'ar'
+                              ? 'في إجازة اليوم'
+                              : 'Off today'
+                          }
+                        >
+                          <span>
+                            {getEffectiveWorkStatus(currentUser) === 'off'
+                              ? '🔴'
+                              : getEffectiveWorkStatus(currentUser) === 'on_leave'
+                              ? '🌴'
+                              : '🟢'}
+                          </span>
+                          <span>
+                            {getEffectiveWorkStatus(currentUser) === 'off'
+                              ? t.workStatusOff
+                              : getEffectiveWorkStatus(currentUser) === 'on_leave'
+                              ? t.workStatusOnLeave
+                              : t.workStatusWorking}
+                          </span>
+                        </span>
 
                         {/* Remaining Holidays Pill (Manual edit inline or click) */}
                         {!editingHolidays ? (
@@ -476,7 +485,7 @@ export default function DashboardClient() {
                             type="button"
                             onClick={() => {
                               setAddingOffDate(true);
-                              setOffStartDate(getNextFridayIso());
+                              setOffStartDate(getTodayIsoLocal());
                               setOffEndDate('');
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
@@ -492,7 +501,7 @@ export default function DashboardClient() {
                             className="inline-flex items-center gap-1.5 bg-white p-1 px-2.5 rounded-xl border border-indigo-400 shadow-xs flex-wrap"
                           >
                             <span className="text-[10px] font-bold text-slate-500">
-                              {state.language === 'ar' ? 'من:' : 'Date:'}
+                              {state.language === 'ar' ? 'التاريخ:' : 'Date:'}
                             </span>
                             <input
                               type="date"
@@ -512,18 +521,6 @@ export default function DashboardClient() {
                               onChange={(e) => setOffEndDate(e.target.value)}
                               className="text-[11px] font-bold text-slate-800 border border-slate-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-indigo-500"
                             />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const fri = getNextFridayIso();
-                                setOffStartDate(fri);
-                                setOffEndDate('');
-                              }}
-                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold cursor-pointer"
-                              title="Set to upcoming Friday"
-                            >
-                              {state.language === 'ar' ? 'الجمعة القادمة' : 'Next Friday'}
-                            </button>
                             <button
                               type="submit"
                               className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer"

@@ -97,6 +97,87 @@ export function expandDateRange(startStr: string, endStr?: string): string[] {
   return dates;
 }
 
+export function getAssigneeOffAlert(
+  user?: User,
+  briefDate?: string,
+  dueDate?: string,
+  lang: 'en' | 'ar' = 'en'
+): {
+  hasAlert: boolean;
+  isConflictWithTaskDates: boolean;
+  isOffToday: boolean;
+  conflictingDates: string[];
+  upcomingDates: string[];
+  message: string;
+} {
+  if (!user) {
+    return {
+      hasAlert: false,
+      isConflictWithTaskDates: false,
+      isOffToday: false,
+      conflictingDates: [],
+      upcomingDates: [],
+      message: '',
+    };
+  }
+  const today = getTodayIsoLocal();
+  const statusToday = getEffectiveWorkStatus(user);
+  const isOffToday = statusToday !== 'working';
+  const upcomingDates = getUpcomingOffDates(user);
+
+  const start = briefDate || today;
+  const end = dueDate && dueDate >= start ? dueDate : start;
+  const conflictingDates = upcomingDates.filter((d) => d >= start && d <= end);
+  const isConflictWithTaskDates = isOffToday || conflictingDates.length > 0;
+  const hasAlert = isOffToday || upcomingDates.length > 0;
+
+  if (!hasAlert) {
+    return {
+      hasAlert: false,
+      isConflictWithTaskDates: false,
+      isOffToday: false,
+      conflictingDates: [],
+      upcomingDates: [],
+      message: '',
+    };
+  }
+
+  const formattedConflict = conflictingDates.map((d) => formatOffDateShort(d, lang)).join(', ');
+  const formattedUpcoming = upcomingDates.map((d) => formatOffDateShort(d, lang)).join(', ');
+
+  let message = '';
+  if (lang === 'ar') {
+    if (conflictingDates.length > 0) {
+      message = `تنبيه: ${user.name} في إجازة بتاريخ (${formattedConflict}) خلال فترة هذه المهمة!`;
+    } else if (isOffToday && upcomingDates.length > 0) {
+      message = `تنبيه: ${user.name} في إجازة اليوم ولديه إجازات مجدولة (${formattedUpcoming})!`;
+    } else if (isOffToday) {
+      message = `تنبيه: ${user.name} في إجازة اليوم (${statusToday === 'on_leave' ? 'في إجازة سنوية' : 'غير متاح'})!`;
+    } else {
+      message = `ملاحظة: ${user.name} لديه أيام إجازة قادمة بتاريخ (${formattedUpcoming}).`;
+    }
+  } else {
+    if (conflictingDates.length > 0) {
+      message = `Alert: ${user.name} is scheduled OFF on ${formattedConflict} (falls within this task's dates)!`;
+    } else if (isOffToday && upcomingDates.length > 0) {
+      message = `Alert: ${user.name} is OFF today and scheduled OFF on ${formattedUpcoming}!`;
+    } else if (isOffToday) {
+      message = `Alert: ${user.name} is currently ${statusToday === 'on_leave' ? 'On Leave' : 'OFF today'}!`;
+    } else {
+      message = `Heads up: ${user.name} is scheduled to be OFF on ${formattedUpcoming}.`;
+    }
+  }
+
+  return {
+    hasAlert,
+    isConflictWithTaskDates,
+    isOffToday,
+    conflictingDates,
+    upcomingDates,
+    message,
+  };
+}
+
 export type RetainerType = 
   | 'SM & DIGITAL' 
   | 'SM & DIGITAL + BRANDING' 

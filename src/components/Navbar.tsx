@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { AppState, TrafficStore } from '@/lib/store';
+import { getEffectiveWorkStatus } from '@/lib/types';
 import { translations } from '@/lib/i18n';
 import { EditProfileModal } from '@/components/EditProfileModal';
 
@@ -148,13 +149,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
               <span
                 className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                  currentUser.workStatus === 'off'
+                  getEffectiveWorkStatus(currentUser) === 'off'
                     ? 'bg-rose-500'
-                    : currentUser.workStatus === 'on_leave'
+                    : getEffectiveWorkStatus(currentUser) === 'on_leave'
                     ? 'bg-amber-500'
                     : 'bg-emerald-500'
                 }`}
-                title={currentUser.workStatus === 'off' ? 'Off' : currentUser.workStatus === 'on_leave' ? 'On Leave' : 'Working'}
+                title={getEffectiveWorkStatus(currentUser) === 'off' ? 'Off Today' : getEffectiveWorkStatus(currentUser) === 'on_leave' ? 'On Leave' : 'Working'}
               />
             </div>
             <div className="hidden lg:flex flex-col text-left">
@@ -223,7 +224,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div className="relative shrink-0">
                         <img src={u.avatar} alt={u.name} className="w-7 h-7 rounded-full object-cover border border-slate-200" />
                         <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
-                          u.workStatus === 'off' ? 'bg-rose-500' : u.workStatus === 'on_leave' ? 'bg-amber-500' : 'bg-emerald-500'
+                          getEffectiveWorkStatus(u) === 'off' ? 'bg-rose-500' : getEffectiveWorkStatus(u) === 'on_leave' ? 'bg-amber-500' : 'bg-emerald-500'
                         }`} />
                       </div>
                       <div className="flex flex-col truncate min-w-0">
@@ -234,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           </span>
                         </div>
                         <span className="text-[10px] text-slate-500 font-normal truncate">
-                          {u.department} • {u.workStatus === 'off' ? 'Off' : u.workStatus === 'on_leave' ? 'On Leave' : 'Working'}
+                          {u.department} • {getEffectiveWorkStatus(u) === 'off' ? 'Off Today' : getEffectiveWorkStatus(u) === 'on_leave' ? 'On Leave' : 'Working'}
                         </span>
                       </div>
                     </button>

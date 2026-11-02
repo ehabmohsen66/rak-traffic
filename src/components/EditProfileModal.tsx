@@ -110,7 +110,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         added++;
       }
     });
-    setPlannedOffDates(Array.from(existing).sort());
+    const nextDates = Array.from(existing).sort();
+    setPlannedOffDates(nextDates);
+    if (nextDates.includes(getTodayIsoLocal())) {
+      setWorkStatus('off');
+    }
     if (added > 0) {
       setRemainingHolidays((prev) => Math.max(0, prev - added));
     }
@@ -120,7 +124,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleRemoveOffDate = (dateStr: string) => {
     if (!plannedOffDates.includes(dateStr)) return;
-    setPlannedOffDates((prev) => prev.filter((d) => d !== dateStr));
+    const nextDates = plannedOffDates.filter((d) => d !== dateStr);
+    setPlannedOffDates(nextDates);
+    if (dateStr === getTodayIsoLocal()) {
+      setWorkStatus('working');
+    }
     setRemainingHolidays((prev) => prev + 1);
   };
 
@@ -399,7 +407,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <label className="block text-slate-700 font-semibold flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{state.language === 'ar' ? 'أيام الإجازة المجدولة (مثلاً الجمعة القادمة)' : 'Scheduled Days Off (e.g. Next Friday)'}</span>
+                <span>{state.language === 'ar' ? 'أيام الإجازة المجدولة' : 'Scheduled Days Off'}</span>
               </span>
               <span className="text-[11px] font-normal text-slate-400">
                 {plannedOffDates.length} {state.language === 'ar' ? 'أيام' : 'upcoming'}
